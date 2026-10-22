@@ -595,9 +595,9 @@ TABLA DE CONTENIDO (ÍNDICE ACTUALIZADO EN CADA PRESENTACIÓN)
 
 1.2 OBJETIVOS
 
-       Objetivo General
+       1.2.1 Objetivo General
 
-       Objetivo Específico
+       1.2.2 Objetivo Específico
 
 1.3 DESCRIPCIÓN DEL PROBLEMA
 
@@ -607,17 +607,20 @@ TABLA DE CONTENIDO (ÍNDICE ACTUALIZADO EN CADA PRESENTACIÓN)
 
 **3\) MODELO DE NEGOCIO**
 
-**4\) FT CAPTURA DE REQUISITOS**
+**4\) FT. CAPTURA DE REQUISITOS**
+4.1
 
 **5\) FT. ANALISIS**
 
 **6\) FT. DISEÑO**
 
     6.1) Diseño de Arquitectura (Física y Lógica)
+          6.1.1 Diseño Fisico de la Arquitectura(Diagrama de Despliegue)
+          6.1.2 Diseño Lógico de la Arquitectura(Diagrama de Paquete. 
 
     6.2) Diseñar Caso de Uso (Diagrama de Secuencia)
 
-    6.2) Diseño de Datos (Lógico y físico)
+    6.3) Diseño de Datos (Lógico y físico)
 
 **7\) FT. IMPLEMENTACIÓN**
 

@@ -1,6 +1,6 @@
 # Modelo de base de datos — Clínica Vida Salud
 
-Documento de diseño para PostgreSQL. Se basa en [Requisitos.md](Requisitos.md), complementado obligatoriamente por [Transcripcion.md](Transcripcion.md). **Esta entrega estructura y documenta la base de datos; no implementa backend, migraciones, autenticación ni integración con una pasarela.** El archivo [bd/backup.mdj](bd/backup.mdj) ya refleja este esquema en clases UML nativas de StarUML: contiene un diagrama general y cuatro vistas por área. El resumen de cambios compara el resultado con la versión inicial del modelo.
+Documento de diseño para PostgreSQL. Se basa en [Requisitos.md](../Requisitos.md), complementado obligatoriamente por Transcripcion.md. **Esta entrega estructura y documenta la base de datos; no implementa backend, migraciones, autenticación ni integración con una pasarela.** El archivo [backup.mdj](backup.mdj) refleja este esquema en clases UML nativas de StarUML: contiene un único diagrama `Main` con todas las tablas y relaciones, en una presentación compacta en blanco y negro. Los tipos y la nulabilidad se conservan en las propiedades de las columnas; las restricciones están en la documentación de cada tabla. El resumen de cambios compara el resultado con la versión inicial del modelo.
 
 ## 1. Criterios de alcance y conciliación
 

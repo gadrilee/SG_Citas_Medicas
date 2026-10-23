@@ -62,6 +62,16 @@ final class Epaciente extends Modelo
         );
     }
 
+    /** Pacientes activos para elegir en la reserva hecha por recepción (CU09). */
+    public function activosParaReserva(): array
+    {
+        return $this->consultar(
+            "SELECT p.id, p.codigo, dp.ci, dp.nombres || ' ' || dp.apellidos AS nombre, dp.telefono
+               FROM paciente p JOIN datos_personales dp ON dp.id = p.id
+              WHERE p.activo ORDER BY dp.apellidos, dp.nombres LIMIT 500"
+        );
+    }
+
     public function cambiarEstado(int $id, bool $activo): void
     {
         $this->ejecutar('UPDATE paciente SET activo = ? WHERE id = ?', [$activo ? 'true' : 'false', $id]);

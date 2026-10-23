@@ -77,23 +77,7 @@ $nombre = $paciente['nombres'] . ' ' . $paciente['apellidos'];
     <?php if (!$citas): ?>
       <?= parcial('estado_vacio', ['icono' => 'calendar-x', 'titulo' => 'Sin citas registradas', 'texto' => 'Las citas del paciente aparecerán aquí.']) ?>
     <?php else: ?>
-    <div class="px-2 pt-2 md:px-0 md:pt-0">
-      <table class="tabla">
-        <thead><tr><th scope="col">Código</th><th scope="col">Fecha</th><th scope="col">Horario</th><th scope="col">Médico</th><th scope="col">Especialidad</th><th scope="col">Estado</th></tr></thead>
-        <tbody>
-          <?php foreach ($citas as $cita): ?>
-            <tr>
-              <td class="font-mono"><?= e($cita['codigo']) ?></td>
-              <td class="numeros"><?= e(fecha_corta($cita['inicio'])) ?></td>
-              <td class="numeros"><?= e(rango_horas($cita['inicio'], $cita['fin'])) ?></td>
-              <td class="principal"><?= e($cita['medico']) ?></td>
-              <td><?= e($cita['especialidad']) ?></td>
-              <td><?= parcial('badge_estado', ['tipo' => 'cita', 'estado' => $cita['estado']]) ?></td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
+      <div class="pt-2"><?= parcial('tabla_citas', ['citas' => $citas, 'con_medico' => true, 'acciones' => true]) ?></div>
     <?php endif; ?>
   </div>
 </section>

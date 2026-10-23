@@ -26,6 +26,7 @@ $siguiente = $proximas[0] ?? null;
         <p class="text-2xl font-bold numeros"><?= e(fecha_corta($siguiente['inicio'])) ?> · <?= e(hora_corta($siguiente['inicio'])) ?></p>
         <div><p class="font-semibold"><?= e($siguiente['medico']) ?></p><p class="text-sm opacity-90"><?= e($siguiente['especialidad']) ?> · <?= e(ucfirst($siguiente['modalidad'])) ?></p></div>
         <p class="font-mono text-sm opacity-90"><?= e($siguiente['codigo']) ?> · <?= e(texto_estado('cita', $siguiente['estado'])) ?></p>
+        <a href="<?= e(url('/citas/' . $siguiente['id'] . '/comprobante')) ?>" class="btn-secundario btn-sm self-start" style="color:inherit;border-color:currentColor"><?= icono('receipt-text') ?>Ver comprobante</a>
       </article>
     <?php else: ?>
       <div class="glass"><?= parcial('estado_vacio', ['icono' => 'calendar-plus', 'titulo' => 'Aún no tienes citas', 'texto' => 'Reserva tu primera cita con nuestros especialistas.']) ?></div>
@@ -34,7 +35,7 @@ $siguiente = $proximas[0] ?? null;
   <section class="glass tabla-contenedor lg:col-span-2" aria-labelledby="t-mis-citas">
     <div class="p-6 pb-2"><h2 id="t-mis-citas" class="font-semibold">Mis próximas citas</h2></div>
     <?php if ($proximas): ?>
-      <?= parcial('tabla_citas', ['citas' => $proximas, 'con_medico' => true]) ?>
+      <?= parcial('tabla_citas', ['citas' => $proximas, 'con_medico' => true, 'acciones' => true]) ?>
     <?php else: ?>
       <p class="texto text-sm px-6 pb-6">No tienes citas programadas.</p>
     <?php endif; ?>

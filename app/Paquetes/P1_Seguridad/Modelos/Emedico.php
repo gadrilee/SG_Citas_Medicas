@@ -56,7 +56,11 @@ final class Emedico extends Modelo
             "SELECT m.id, m.codigo, m.nro_registro_profesional, dp.nombres, dp.apellidos,
                     CASE WHEN dp.sexo = 'Femenino' THEN 'Dra. ' ELSE 'Dr. ' END || dp.nombres || ' ' || dp.apellidos AS nombre,
                     " . self::ESPECIALIDADES . " AS especialidades,
-                    (SELECT string_agg(me.especialidad_id::text, ',') FROM medico_especialidad me WHERE me.medico_id = m.id AND me.activo) AS especialidades_ids
+                    (SELECT string_agg(me.especialidad_id::text, ',') FROM medico_especialidad me WHERE me.medico_id = m.id AND me.activo) AS especialidades_ids,
+                    (SELECT string_agg(DISTINCT h.dia_semana::text, ',') FROM horario_atencion h
+                      WHERE h.medico_id = m.id AND h.activo AND (h.vigente_hasta IS NULL OR h.vigente_hasta >= current_date)) AS dias_atencion,
+                    (SELECT string_agg(b.fecha::text, ',' ORDER BY b.fecha) FROM bloqueo_agenda b
+                      WHERE b.medico_id = m.id AND b.fecha >= current_date) AS bloqueos
                FROM medico m JOIN datos_personales dp ON dp.id = m.id
               WHERE m.activo
               ORDER BY m.codigo"

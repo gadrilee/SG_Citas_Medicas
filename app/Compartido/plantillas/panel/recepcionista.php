@@ -27,7 +27,7 @@
     <a href="<?= e(url('/pacientes')) ?>" class="btn-secundario btn-sm"><?= icono('users-round') ?>Pacientes</a>
   </div>
   <?php if ($proximas): ?>
-    <?= parcial('tabla_citas', ['citas' => $proximas, 'con_paciente' => true, 'con_medico' => true]) ?>
+    <?= parcial('tabla_citas', ['citas' => $proximas, 'con_paciente' => true, 'con_medico' => true, 'acciones' => true]) ?>
   <?php else: ?>
     <?= parcial('estado_vacio', ['icono' => 'calendar-check', 'titulo' => 'No hay citas próximas']) ?>
   <?php endif; ?>

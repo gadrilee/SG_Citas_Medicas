@@ -19,6 +19,7 @@ archivos=(
 if [ "${1:-}" = "--con-demo" ]; then
   archivos+=(bd/semillas/004_datos_demo.sql)
 fi
+archivos+=(bd/migraciones/005_tarifa_especialidad.sql)
 
 for archivo in "${archivos[@]}"; do
   echo "→ $archivo"

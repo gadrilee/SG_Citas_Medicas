@@ -18,6 +18,7 @@ services:
       - ./bd/migraciones/002_restricciones.sql:/docker-entrypoint-initdb.d/002_restricciones.sql:ro
       - ./bd/migraciones/003_catalogos.sql:/docker-entrypoint-initdb.d/003_catalogos.sql:ro
       - ./bd/semillas/004_datos_demo.sql:/docker-entrypoint-initdb.d/004_datos_demo.sql:ro
+      - ./bd/migraciones/005_tarifa_especialidad.sql:/docker-entrypoint-initdb.d/005_tarifa_especialidad.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vida_salud -d vida_salud"]
       interval: 5s

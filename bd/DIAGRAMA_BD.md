@@ -253,6 +253,7 @@ Especialidades ofrecidas por la clínica.
 | `nombre` | `VARCHAR(100)` | UK | No | Índice único sobre lower(btrim(nombre)); no vacío. |
 | `descripcion` | `TEXT` | — | Sí | Descripción. |
 | `activo` | `BOOLEAN` | — | No | DEFAULT TRUE. |
+| `importe_consulta` | `NUMERIC(12,2)` | — | No | DEFAULT 0; CHECK >= 0. Tarifa vigente que se copia en cita_medica.importe_acordado al reservar (migración 005). |
 
 Datos iniciales obligatorios: Pediatría, Medicina general y Geriatría (Transcripcion.md). Las demás especialidades son ampliables. No se convierten las edades mencionadas como ejemplos en prohibiciones automáticas de atención.
 
@@ -789,6 +790,7 @@ El script `clinica_vida_salud.sql` es la migración 001. Las siguientes completa
 | --- | --- |
 | `migraciones/002_restricciones.sql` | Exclusión GiST `ex_cita_sin_solapamiento` (sin citas superpuestas por médico, salvo canceladas), índice único parcial `ux_pago_cita_activo`, catálogos fijos de `estado_cita` y `perfil` mediante CHECK, ventanas divisibles entre la duración del turno, fecha de nacimiento desde 1900, reprogramación solo en estados programada/confirmada e índices de consulta. |
 | `migraciones/003_catalogos.sql` | Cuatro perfiles, cinco estados, cinco especialidades iniciales, pasarela simulada, 22 privilegios (uno por operación de CU01–CU20) y su asignación por perfil. |
+| `migraciones/005_tarifa_especialidad.sql` | Columna `especialidad.importe_consulta` (tarifa vigente por especialidad, administrada en CU06) con los valores iniciales. La cita conserva su propio `importe_acordado`, por lo que un cambio de tarifa no altera reservas existentes. |
 | `semillas/004_datos_demo.sql` | Solo para desarrollo y defensa: 15 personas, 11 cuentas (contraseña `VidaSalud2026`), horarios de 15 minutos, 21 citas en todos los estados con su historial, consultas, estudios, pagos y bitácora. |
 
 Reglas que siguen a cargo de la aplicación: fecha de nacimiento no futura, pertenencia de la cita a una ventana vigente y no bloqueada, transiciones de estado, coherencia de importe y moneda del pago con la cita, y acceso del médico solo a sus pacientes del día.

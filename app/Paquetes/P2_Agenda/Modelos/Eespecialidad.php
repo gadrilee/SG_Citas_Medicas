@@ -6,19 +6,39 @@ namespace VidaSalud\Paquetes\P2_Agenda\Modelos;
 
 use VidaSalud\Nucleo\Modelo;
 
-/** Catálogo de especialidades (dueño: CU06). */
+/** Catálogo de especialidades con su tarifa de consulta (CU06). */
 final class Eespecialidad extends Modelo
 {
     protected const TABLA = 'especialidad';
 
+    private const CON_MEDICOS = 'SELECT e.id, e.nombre, e.descripcion, e.activo, e.importe_consulta,
+                                        (SELECT count(*) FROM medico_especialidad me JOIN medico m ON m.id = me.medico_id
+                                          WHERE me.especialidad_id = e.id AND me.activo AND m.activo) AS medicos
+                                   FROM especialidad e';
+
     public function activas(): array
     {
-        return $this->consultar(
-            'SELECT e.id, e.nombre, e.descripcion,
-                    (SELECT count(*) FROM medico_especialidad me JOIN medico m ON m.id = me.medico_id
-                      WHERE me.especialidad_id = e.id AND me.activo AND m.activo) AS medicos
-               FROM especialidad e WHERE e.activo ORDER BY e.nombre'
+        return $this->consultar(self::CON_MEDICOS . ' WHERE e.activo ORDER BY e.nombre');
+    }
+
+    /** Todas, activas primero (vista de administración). */
+    public function todas(): array
+    {
+        return $this->consultar(self::CON_MEDICOS . ' ORDER BY e.activo DESC, e.nombre');
+    }
+
+    /** Nombre normalizado (sin distinguir mayúsculas ni espacios extremos), como el índice único. */
+    public function existeNombre(string $nombre, ?int $excluirId = null): bool
+    {
+        return (bool) $this->valor(
+            'SELECT 1 FROM especialidad WHERE lower(btrim(nombre)) = lower(btrim(?)) AND id <> ?',
+            [$nombre, $excluirId ?? 0]
         );
+    }
+
+    public function cambiarEstado(int $id, bool $activo): void
+    {
+        $this->ejecutar('UPDATE especialidad SET activo = ? WHERE id = ?', [$activo ? 'true' : 'false', $id]);
     }
 
     /** Filtra una lista de ids dejando solo especialidades activas existentes. */

@@ -22,6 +22,18 @@ final class Emedico_especialidad extends Modelo
         ));
     }
 
+    /** La pareja existe, está activa y tanto el médico como la especialidad están activos. */
+    public function habilitada(int $medicoId, int $especialidadId): bool
+    {
+        return (bool) $this->valor(
+            'SELECT 1 FROM medico_especialidad me
+               JOIN medico m ON m.id = me.medico_id
+               JOIN especialidad e ON e.id = me.especialidad_id
+              WHERE me.medico_id = ? AND me.especialidad_id = ? AND me.activo AND m.activo AND e.activo',
+            [$medicoId, $especialidadId]
+        );
+    }
+
     public function asignar(int $medicoId, array $especialidadIds): void
     {
         $this->ejecutar('UPDATE medico_especialidad SET activo = FALSE WHERE medico_id = ?', [$medicoId]);

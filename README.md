@@ -19,7 +19,7 @@ Requisitos: Docker con Docker Compose.
 
 ```bash
 docker compose up --build          # http://localhost:8080 (PUERTO_APP=8090 si el 8080 está ocupado)
-docker compose down -v             # borra la base; al volver a subir se recrea con 001–004
+docker compose down -v             # borra la base; al volver a subir se recrea con 001–005
 ```
 
 - Cuentas de demostración (contraseña `VidaSalud2026`): `admin`, `rosa.ag` (recepción), `dr.perez` (médico), `maria.lopez` (paciente).
@@ -35,12 +35,12 @@ app/Compartido/    layouts, parciales, menú por perfil, portada y panel de inic
 app/Paquetes/      un paquete por grupo de casos de uso, cada uno con:
                    Controladores/ (C*), Modelos/ (E*, una clase por tabla), Vistas/ (V*), plantillas/ y rutas.php
   P1_Seguridad     CU01–CU05 acceso, usuarios y permisos, bitácora, pacientes, médicos   ✔ ciclo 1
-  P2_Agenda        CU06–CU10 especialidades, horarios, disponibilidad, reservas         ciclo 1
+  P2_Agenda        CU06–CU10 especialidades, horarios, disponibilidad, reservas         ✔ ciclo 1
   P3_Citas         CU11–CU15 cancelación, asistencia, agenda, historial, reportes      ciclo 2
   P4_Atencion      CU16–CU20 historia clínica, consultas, estudios, resultados, pagos  ciclo 2
 publico/           punto de entrada (index.php), CSS compilado, JS e imágenes
 recursos/          fuente del CSS (Tailwind + sistema Liquid Glass) y logos
-bd/                esquema (001), migraciones (002–003) y datos demo (004)
+bd/                esquema (001), migraciones (002, 003, 005) y datos demo (004)
 docs/              documentación académica (generador DOCX/PDF) y guía de estilo
 pruebas/           PHPUnit
 ```

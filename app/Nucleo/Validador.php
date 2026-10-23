@@ -30,6 +30,8 @@ final class Validador
         'nombre_usuario'  => 'Usa de 3 a 50 letras minúsculas, números, punto o guion bajo.',
         'contrasena'      => 'Debe tener al menos 8 caracteres con letras y números.',
         'telefono'        => 'Ingresa un teléfono válido (solo números, 7 a 15 dígitos).',
+        'no_negativo'     => 'Debe ser un número mayor o igual a cero.',
+        'entre'           => 'Debe estar entre :valor.',
         'arreglo'         => 'El formato enviado no es válido.',
     ];
 
@@ -55,7 +57,7 @@ final class Validador
                     continue;
                 }
                 if (!self::cumple($nombre, $valor, $parametro, $datos)) {
-                    $errores[$campo] = str_replace(':valor', (string) $parametro, self::MENSAJES[$nombre] ?? 'Valor no válido.');
+                    $errores[$campo] = str_replace(':valor', str_replace(',', ' y ', (string) $parametro), self::MENSAJES[$nombre] ?? 'Valor no válido.');
                     break;
                 }
             }
@@ -83,9 +85,18 @@ final class Validador
             'nombre_usuario'  => (bool) preg_match('/^[a-z0-9._]{3,50}$/', $texto),
             'contrasena'      => mb_strlen($texto) >= 8 && preg_match('/[A-Za-z]/', $texto) && preg_match('/\d/', $texto),
             'telefono'        => (bool) preg_match('/^\+?[0-9 ]{7,15}$/', $texto),
+            'no_negativo'     => is_numeric($texto) && (float) $texto >= 0,
+            'entre'           => is_numeric($texto) && self::entre((float) $texto, (string) $parametro),
             'arreglo'         => is_array($valor),
             default           => true,
         };
+    }
+
+    /** 'entre:5,240' → 5 <= valor <= 240 */
+    private static function entre(float $valor, string $parametro): bool
+    {
+        [$minimo, $maximo] = array_map('floatval', explode(',', $parametro) + [1 => PHP_FLOAT_MAX]);
+        return $valor >= $minimo && $valor <= $maximo;
     }
 
     private static function fechaValida(string $texto, string $formato): bool

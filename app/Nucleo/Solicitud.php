@@ -47,6 +47,12 @@ final class Solicitud
         return $this->ruta;
     }
 
+    /** Ruta con su cadena de consulta (/citas/nueva?medico_id=3), para volver tras iniciar sesión. */
+    public function rutaConConsulta(): string
+    {
+        return $this->ruta . ($this->consulta ? '?' . http_build_query($this->consulta) : '');
+    }
+
     /** Valor del cuerpo o de la cadena de consulta, en ese orden. */
     public function entrada(string $clave, mixed $defecto = null): mixed
     {

@@ -46,7 +46,9 @@ final class Aplicacion
             if ($solicitud->esApi()) {
                 return Respuesta::json(['mensaje' => 'Inicia sesión para continuar.'], 401);
             }
-            Sesion::poner('_destino', $solicitud->ruta());
+            if ($solicitud->metodo() === 'GET') {
+                Sesion::poner('_destino', $solicitud->rutaConConsulta());
+            }
             return Respuesta::redirigir('/login');
         } catch (ExcepcionAcceso $error) {
             return $this->error($solicitud, 403, $error->getMessage());

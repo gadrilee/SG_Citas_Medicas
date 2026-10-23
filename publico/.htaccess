@@ -1,0 +1,6 @@
+# Para XAMPP/Apache local: los archivos existentes se sirven directo y el resto va a index.php.
+Options -Indexes
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]

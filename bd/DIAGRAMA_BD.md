@@ -780,3 +780,15 @@ erDiagram
     pasarela_pago ||--o{ pago : procesa
     usuario ||--o{ pago : inicia
 ```
+
+## 7. Migraciones aplicadas sobre el esquema
+
+El script `clinica_vida_salud.sql` es la migración 001. Las siguientes completan el diseño sin modificarlo; se aplican en orden con `scripts/migrar.sh` (o automáticamente con `docker compose up`).
+
+| Archivo | Contenido |
+| --- | --- |
+| `migraciones/002_restricciones.sql` | Exclusión GiST `ex_cita_sin_solapamiento` (sin citas superpuestas por médico, salvo canceladas), índice único parcial `ux_pago_cita_activo`, catálogos fijos de `estado_cita` y `perfil` mediante CHECK, ventanas divisibles entre la duración del turno, fecha de nacimiento desde 1900, reprogramación solo en estados programada/confirmada e índices de consulta. |
+| `migraciones/003_catalogos.sql` | Cuatro perfiles, cinco estados, cinco especialidades iniciales, pasarela simulada, 22 privilegios (uno por operación de CU01–CU20) y su asignación por perfil. |
+| `semillas/004_datos_demo.sql` | Solo para desarrollo y defensa: 15 personas, 11 cuentas (contraseña `VidaSalud2026`), horarios de 15 minutos, 21 citas en todos los estados con su historial, consultas, estudios, pagos y bitácora. |
+
+Reglas que siguen a cargo de la aplicación: fecha de nacimiento no futura, pertenencia de la cita a una ventana vigente y no bloqueada, transiciones de estado, coherencia de importe y moneda del pago con la cita, y acceso del médico solo a sus pacientes del día.

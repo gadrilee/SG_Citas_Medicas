@@ -1,0 +1,23 @@
+# Blueprint de Render: servicio web gratuito con Docker.
+# La base de datos se crea aparte (Neon recomendado) y su URL se carga en DATABASE_URL.
+services:
+  - type: web
+    name: vida-salud
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /salud
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: produccion
+      - key: APP_DEBUG
+        value: "0"
+      - key: PASARELA
+        value: simulada
+      - key: APP_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false

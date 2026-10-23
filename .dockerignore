@@ -1,0 +1,11 @@
+.git
+.env
+docs
+privado
+herramientas
+vendor
+pruebas
+recursos/marca
+bd/backup.mdj
+bd/*.png
+docker-compose.yml

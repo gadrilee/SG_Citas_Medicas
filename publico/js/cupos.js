@@ -29,8 +29,8 @@
   function valor(raiz, nombre) { var c = campo(raiz, nombre); return c ? c.value : ''; }
   function fijarOculto(raiz, nombre, v) {
     raiz.querySelectorAll('input[type="hidden"][name="' + nombre + '"]').forEach(function (i) {
+      if (i.value === String(v)) return;
       i.value = v;
-      i.dispatchEvent(new Event('change', { bubbles: true }));
     });
   }
   function resumen(raiz, clave, texto) {

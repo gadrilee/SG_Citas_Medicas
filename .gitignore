@@ -15,3 +15,5 @@ docs/node_modules/
 docs/toc_headings.json
 docs/toc_pages.json
 docs/
+
+.vscode/

@@ -1,0 +1,19 @@
+# Entorno y dependencias
+.env
+vendor/
+herramientas/
+.phpunit.cache/
+
+# Estilos compilados (se generan con scripts/css.sh o al construir la imagen)
+publico/css/app.css
+
+# Material de trabajo solo para el equipo (exportación de V0, referencias de otros proyectos)
+privado/
+
+# Documentación: dependencias y archivos intermedios del generador
+docs/node_modules/
+docs/toc_headings.json
+docs/toc_pages.json
+docs/
+
+.vscode/

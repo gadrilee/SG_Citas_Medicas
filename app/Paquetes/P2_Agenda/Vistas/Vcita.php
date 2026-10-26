@@ -7,9 +7,23 @@ namespace VidaSalud\Paquetes\P2_Agenda\Vistas;
 use VidaSalud\Nucleo\Respuesta;
 use VidaSalud\Nucleo\Vista;
 
-/** CU09 y CU10 · Reserva, comprobante y reprogramación de citas. */
+/** CU09, CU10 y CU11 · Reserva, comprobante, reprogramación, búsqueda y cancelación de citas. */
 final class Vcita extends Vista
 {
+    public function mostrarLista(array $resultado, array $filtros, array $medicos, array $estados, array $conPagoAprobado, array $erroresFiltro): Respuesta
+    {
+        return $this->render('citas/lista', [
+            'titulo'          => 'Citas',
+            'migas'           => 'Citas',
+            'resultado'       => $resultado,
+            'filtros'         => $filtros,
+            'medicos'         => $medicos,
+            'estados'         => $estados,
+            'conPagoAprobado' => $conPagoAprobado,
+            'erroresFiltro'   => $erroresFiltro,
+        ]);
+    }
+
     public function mostrarReserva(array $especialidades, array $medicos, array $pacientes, ?array $paciente, array $seleccion): Respuesta
     {
         return $this->render('citas/reservar', [
@@ -23,13 +37,14 @@ final class Vcita extends Vista
         ]);
     }
 
-    public function mostrarComprobante(array $cita, array $historial): Respuesta
+    public function mostrarComprobante(array $cita, array $historial, bool $pagoAprobado): Respuesta
     {
         return $this->render('citas/comprobante', [
-            'titulo'    => 'Comprobante ' . $cita['codigo'],
-            'migas'     => 'Citas',
-            'cita'      => $cita,
-            'historial' => $historial,
+            'titulo'       => 'Comprobante ' . $cita['codigo'],
+            'migas'        => 'Citas',
+            'cita'         => $cita,
+            'historial'    => $historial,
+            'pagoAprobado' => $pagoAprobado,
         ]);
     }
 

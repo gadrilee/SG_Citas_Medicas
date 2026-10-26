@@ -3,10 +3,10 @@
  * CU09 · Comprobante de la cita (y su historial de eventos).
  * @var array $cita       Ecita_medica::buscarDetalle
  * @var array $historial  Ehistorial_cita::deCita
+ * @var bool  $pagoAprobado  A1 de CU11: avisa que corresponde la devolución
  */
 $vigente = in_array((int) $cita['estado_cita_id'], [1, 2], true) && strtotime($cita['inicio']) > time();
 $foto = foto_medico($cita['codigo_medico']);
-$eventos = ['creacion' => 'Cita creada', 'cambio_estado' => 'Cambio de estado', 'reprogramacion' => 'Reprogramada'];
 // QR decorativo (11 × 11) determinado por el id de la cita, como en el diseño de V0.
 $semilla = (int) $cita['id'] * 9301 + 49297;
 ?>
@@ -17,6 +17,9 @@ $semilla = (int) $cita['id'] * 9301 + 49297;
       <button type="button" class="btn-secundario" data-accion="imprimir"><?= icono('printer') ?>Imprimir</button>
       <?php if ($vigente && puede('citas.reprogramar')): ?>
         <a href="<?= e(url('/citas/' . $cita['id'] . '/reprogramar')) ?>" class="btn-secundario"><?= icono('calendar-sync') ?>Reprogramar</a>
+      <?php endif; ?>
+      <?php if ($vigente && puede('citas.cancelar')): ?>
+        <button type="button" class="btn-peligro" data-abrir-modal="modal-cancelar-cita"><?= icono('calendar-x') ?>Cancelar cita</button>
       <?php endif; ?>
       <?php if (puede('citas.reservar')): ?>
         <a href="<?= e(url('/citas/nueva')) ?>" class="btn-primario"><?= icono('calendar-plus') ?>Nueva cita</a>
@@ -72,22 +75,20 @@ $semilla = (int) $cita['id'] * 9301 + 49297;
   <?php if ($historial): ?>
   <section class="glass p-6 md:p-8 mt-6" aria-labelledby="t-historial">
     <h2 id="t-historial" class="font-semibold mb-5">Historial de la cita</h2>
-    <ol class="linea-tiempo">
-      <?php foreach ($historial as $evento): ?>
-        <li class="evento-tiempo">
-          <p class="font-medium"><?= e($eventos[$evento['tipo_evento']] ?? $evento['tipo_evento']) ?>
-            <?php if ($evento['tipo_evento'] === 'cambio_estado'): ?>
-              · <?= e(texto_estado('cita', $evento['estado_anterior'])) ?> → <?= e(texto_estado('cita', $evento['estado_nuevo'])) ?>
-            <?php endif; ?>
-          </p>
-          <?php if ($evento['tipo_evento'] === 'reprogramacion'): ?>
-            <p class="text-sm text-muted numeros"><?= e(fecha_corta($evento['inicio_anterior']) . ' ' . rango_horas($evento['inicio_anterior'], $evento['fin_anterior'])) ?> → <?= e(fecha_corta($evento['inicio_nuevo']) . ' ' . rango_horas($evento['inicio_nuevo'], $evento['fin_nuevo'])) ?></p>
-          <?php endif; ?>
-          <?php if ($evento['observacion']): ?><p class="text-sm text-muted">Motivo: <?= e($evento['observacion']) ?></p><?php endif; ?>
-          <p class="text-xs text-subtle"><?= e(fecha_hora($evento['fecha_hora'])) ?> · <span class="font-mono"><?= e($evento['nombre_usuario']) ?></span></p>
-        </li>
-      <?php endforeach; ?>
-    </ol>
+    <?= parcial('eventos_cita', ['eventos' => $historial]) ?>
   </section>
   <?php endif; ?>
 </div>
+
+<?php if ($vigente && puede('citas.cancelar')): ?>
+<?= parcial('modal_confirmar', [
+    'id'     => 'modal-cancelar-cita',
+    'titulo' => '¿Cancelar la cita ' . $cita['codigo'] . '?',
+    'texto'  => 'La cita se conserva como Cancelada en el historial y el horario queda libre para otros pacientes.',
+    'accion' => '/citas/' . $cita['id'] . '/cancelar',
+    'boton'  => 'Cancelar cita',
+    'icono'  => 'calendar-x',
+    'motivo' => true,
+    'aviso'  => $pagoAprobado ? 'Esta cita tiene un pago aprobado: al cancelarla corresponde solicitar la devolución total (CU20).' : null,
+]) ?>
+<?php endif; ?>

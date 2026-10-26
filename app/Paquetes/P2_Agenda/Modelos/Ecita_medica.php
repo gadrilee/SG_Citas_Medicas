@@ -20,19 +20,36 @@ final class Ecita_medica extends Modelo
     public const CANCELADA = 4;
     public const INASISTENCIA = 5;
 
-    private const LISTADO = "SELECT c.id, c.codigo, c.inicio, c.fin, c.modalidad, c.importe_acordado, c.moneda, c.motivo, c.fecha_creacion,
-                                    c.paciente_id, c.medico_id, c.especialidad_id, c.estado_cita_id,
-                                    ec.nombre AS estado, e.nombre AS especialidad,
-                                    m.codigo AS codigo_medico,
-                                    CASE WHEN dm.sexo = 'Femenino' THEN 'Dra. ' ELSE 'Dr. ' END || dm.nombres || ' ' || dm.apellidos AS medico,
-                                    dp.nombres || ' ' || dp.apellidos AS paciente, pa.codigo AS codigo_paciente, dp.ci AS ci_paciente
-                               FROM cita_medica c
-                               JOIN estado_cita ec ON ec.id = c.estado_cita_id
-                               JOIN especialidad e ON e.id = c.especialidad_id
-                               JOIN medico m ON m.id = c.medico_id
-                               JOIN datos_personales dm ON dm.id = c.medico_id
-                               JOIN paciente pa ON pa.id = c.paciente_id
-                               JOIN datos_personales dp ON dp.id = c.paciente_id";
+    /**
+     * Transiciones de estado permitidas (RF10). Atendida la registra CU17 al guardar la consulta;
+     * Cancelada (CU11) e Inasistencia (CU12) son finales, igual que Atendida.
+     */
+    private const TRANSICIONES = [
+        self::PROGRAMADA => [self::CONFIRMADA, self::ATENDIDA, self::CANCELADA, self::INASISTENCIA],
+        self::CONFIRMADA => [self::ATENDIDA, self::CANCELADA, self::INASISTENCIA],
+    ];
+
+    private const COLUMNAS = "c.id, c.codigo, c.inicio, c.fin, c.modalidad, c.importe_acordado, c.moneda, c.motivo, c.fecha_creacion,
+                              c.paciente_id, c.medico_id, c.especialidad_id, c.estado_cita_id,
+                              ec.nombre AS estado, e.nombre AS especialidad,
+                              m.codigo AS codigo_medico,
+                              CASE WHEN dm.sexo = 'Femenino' THEN 'Dra. ' ELSE 'Dr. ' END || dm.nombres || ' ' || dm.apellidos AS medico,
+                              dp.nombres || ' ' || dp.apellidos AS paciente, pa.codigo AS codigo_paciente, dp.ci AS ci_paciente";
+
+    private const DESDE = 'FROM cita_medica c
+                           JOIN estado_cita ec ON ec.id = c.estado_cita_id
+                           JOIN especialidad e ON e.id = c.especialidad_id
+                           JOIN medico m ON m.id = c.medico_id
+                           JOIN datos_personales dm ON dm.id = c.medico_id
+                           JOIN paciente pa ON pa.id = c.paciente_id
+                           JOIN datos_personales dp ON dp.id = c.paciente_id';
+
+    private const LISTADO = 'SELECT ' . self::COLUMNAS . ' ' . self::DESDE;
+
+    public static function transicionPermitida(int $desde, int $hacia): bool
+    {
+        return in_array($hacia, self::TRANSICIONES[$desde] ?? [], true);
+    }
 
     public function buscarDetalle(int $id): ?array
     {
@@ -131,6 +148,109 @@ final class Ecita_medica extends Modelo
             'UPDATE cita_medica SET inicio = CAST(? AS timestamptz), fin = CAST(? AS timestamptz) WHERE id = ?',
             [$inicio, $fin, $id]
         );
+    }
+
+    /** CU11 y CU12: el historial del cambio lo escribe Ehistorial_cita en la misma transacción. */
+    public function cambiarEstado(int $id, int $estadoId): void
+    {
+        $this->ejecutar('UPDATE cita_medica SET estado_cita_id = ? WHERE id = ?', [$estadoId, $id]);
+    }
+
+    /** CU11 · Búsqueda de citas por código, paciente (nombre, CI o código), fecha, médico y estado. */
+    public function buscar(array $filtros, int $pagina): array
+    {
+        [$condiciones, $parametros] = self::filtrar($filtros);
+        return $this->paginar(self::COLUMNAS, self::DESDE . ' WHERE ' . $condiciones, $parametros, 'c.inicio DESC, c.id DESC', $pagina, 12);
+    }
+
+    /** CU12 y CU13 · Citas de un día, opcionalmente de un médico y un estado. */
+    public function delDia(string $fecha, ?int $medicoId = null, ?int $estadoId = null): array
+    {
+        [$condiciones, $parametros] = self::filtrar(['fecha' => $fecha, 'medico_id' => $medicoId, 'estado_cita_id' => $estadoId]);
+        return $this->consultar(self::LISTADO . ' WHERE ' . $condiciones . ' ORDER BY c.inicio, dm.apellidos', $parametros);
+    }
+
+    /** CU14 · Citas de un paciente (pasadas, futuras y canceladas) con filtro de rango y estado. */
+    public function historialDe(int $pacienteId, array $filtros): array
+    {
+        [$condiciones, $parametros] = self::filtrar(['paciente_id' => $pacienteId] + $filtros);
+        return $this->consultar(self::LISTADO . ' WHERE ' . $condiciones . ' ORDER BY c.inicio DESC', $parametros);
+    }
+
+    /** CU15 · Listado de citas del período con los filtros del reporte. */
+    public function paraReporte(array $filtros): array
+    {
+        [$condiciones, $parametros] = self::filtrar($filtros);
+        return $this->consultar(self::LISTADO . ' WHERE ' . $condiciones . ' ORDER BY c.inicio, dm.apellidos LIMIT 1000', $parametros);
+    }
+
+    /** CU15 · Cantidad de citas por estado (los cinco estados, aunque tengan cero). */
+    public function totalesPorEstado(array $filtros): array
+    {
+        [$condiciones, $parametros] = self::filtrar($filtros);
+        $filas = $this->consultar(
+            'SELECT ec.id, ec.nombre, count(c.id) AS total
+               FROM estado_cita ec
+               LEFT JOIN (SELECT c.id, c.estado_cita_id ' . self::DESDE . ' WHERE ' . $condiciones . ') c ON c.estado_cita_id = ec.id
+              GROUP BY ec.id, ec.nombre ORDER BY ec.id',
+            $parametros
+        );
+        return array_column($filas, null, 'nombre');
+    }
+
+    /** CU15 · Atendidas, canceladas e inasistencias del período agrupadas por médico o especialidad. */
+    public function resumenPor(string $grupo, array $filtros): array
+    {
+        [$expresion, $orden] = $grupo === 'especialidad'
+            ? ['e.nombre', 'e.nombre']
+            : ["CASE WHEN dm.sexo = 'Femenino' THEN 'Dra. ' ELSE 'Dr. ' END || dm.nombres || ' ' || dm.apellidos", 'dm.apellidos'];
+        [$condiciones, $parametros] = self::filtrar($filtros);
+        return $this->consultar(
+            "SELECT $expresion AS grupo,
+                    count(*) AS total,
+                    count(*) FILTER (WHERE c.estado_cita_id IN (1, 2)) AS vigentes,
+                    count(*) FILTER (WHERE c.estado_cita_id = 3) AS atendidas,
+                    count(*) FILTER (WHERE c.estado_cita_id = 4) AS canceladas,
+                    count(*) FILTER (WHERE c.estado_cita_id = 5) AS inasistencias,
+                    COALESCE(sum(c.importe_acordado) FILTER (WHERE c.estado_cita_id = 3), 0) AS importe_atendidas
+               " . self::DESDE . " WHERE $condiciones
+              GROUP BY $expresion, $orden ORDER BY $orden",
+            $parametros
+        );
+    }
+
+    /**
+     * Condiciones comunes de búsqueda. Claves: buscar, fecha, desde, hasta, medico_id,
+     * especialidad_id, estado_cita_id, paciente_id. Las fechas se interpretan en la hora de la clínica.
+     */
+    private static function filtrar(array $filtros): array
+    {
+        $condiciones = ['TRUE'];
+        $parametros = [];
+        $texto = trim((string) ($filtros['buscar'] ?? ''));
+        if ($texto !== '') {
+            $condiciones[] = "(c.codigo ILIKE :b1 OR (dp.nombres || ' ' || dp.apellidos) ILIKE :b2 OR dp.ci ILIKE :b3 OR pa.codigo ILIKE :b4)";
+            $parametros += ['b1' => "%$texto%", 'b2' => "%$texto%", 'b3' => "%$texto%", 'b4' => "%$texto%"];
+        }
+        if (!empty($filtros['fecha'])) {
+            $condiciones[] = 'c.inicio >= CAST(:fecha_desde AS date) AND c.inicio < CAST(:fecha_hasta AS date) + 1';
+            $parametros += ['fecha_desde' => $filtros['fecha'], 'fecha_hasta' => $filtros['fecha']];
+        }
+        if (!empty($filtros['desde'])) {
+            $condiciones[] = 'c.inicio >= CAST(:desde AS date)';
+            $parametros['desde'] = $filtros['desde'];
+        }
+        if (!empty($filtros['hasta'])) {
+            $condiciones[] = 'c.inicio < CAST(:hasta AS date) + 1';
+            $parametros['hasta'] = $filtros['hasta'];
+        }
+        foreach (['medico_id' => 'c.medico_id', 'especialidad_id' => 'c.especialidad_id', 'estado_cita_id' => 'c.estado_cita_id', 'paciente_id' => 'c.paciente_id'] as $clave => $columna) {
+            if (!empty($filtros[$clave])) {
+                $condiciones[] = "$columna = :$clave";
+                $parametros[$clave] = (int) $filtros[$clave];
+            }
+        }
+        return [implode(' AND ', $condiciones), $parametros];
     }
 
     /** Indicadores del panel: hoy, vigentes futuras y del mes actual por estado. */

@@ -77,6 +77,19 @@ final class Epaciente extends Modelo
         $this->ejecutar('UPDATE paciente SET activo = ? WHERE id = ?', [$activo ? 'true' : 'false', $id]);
     }
 
+    /** CU15 · Pacientes registrados en un período, con su cantidad de citas. */
+    public function registradosEntre(string $desde, string $hasta): array
+    {
+        return $this->consultar(
+            "SELECT p.id, p.codigo, p.activo, p.fecha_registro, dp.ci, dp.nombres || ' ' || dp.apellidos AS nombre, dp.telefono,
+                    (SELECT count(*) FROM cita_medica c WHERE c.paciente_id = p.id) AS citas
+               FROM paciente p JOIN datos_personales dp ON dp.id = p.id
+              WHERE p.fecha_registro >= CAST(:desde AS date) AND p.fecha_registro < CAST(:hasta AS date) + 1
+              ORDER BY p.fecha_registro",
+            ['desde' => $desde, 'hasta' => $hasta]
+        );
+    }
+
     public function contarActivos(): int
     {
         return (int) $this->valor('SELECT count(*) FROM paciente WHERE activo');

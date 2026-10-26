@@ -21,6 +21,26 @@ final class Epago extends Modelo
         );
     }
 
+    /** A1 de CU11: si la cita tiene un pago aprobado corresponde solicitar la devolución (CU20). */
+    public function tieneAprobado(int $citaId): bool
+    {
+        return (bool) $this->valor("SELECT 1 FROM pago WHERE cita_id = ? AND estado = 'aprobado'", [$citaId]);
+    }
+
+    /** Citas (de la lista dada) con pago aprobado, para avisar antes de cancelar. */
+    public function citasConPagoAprobado(array $citaIds): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $citaIds)));
+        if (!$ids) {
+            return [];
+        }
+        $marcas = implode(',', array_fill(0, count($ids), '?'));
+        return array_map('intval', array_column(
+            $this->consultar("SELECT DISTINCT cita_id FROM pago WHERE estado = 'aprobado' AND cita_id IN ($marcas)", $ids),
+            'cita_id'
+        ));
+    }
+
     public function contarPendientes(): int
     {
         return (int) $this->valor("SELECT count(*) FROM pago WHERE estado = 'pendiente'");

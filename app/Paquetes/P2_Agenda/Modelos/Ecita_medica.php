@@ -103,7 +103,8 @@ final class Ecita_medica extends Modelo
     /** Código correlativo CM-0001; el bloqueo serializa la generación entre reservas simultáneas. */
     public function siguienteCodigo(): string
     {
-        $this->bd->exec("SELECT pg_advisory_xact_lock(hashtext('cita_medica.codigo'))");
+        // El pooler de Neon aborta la transacción si el resultado de este SELECT no se lee.
+        $this->consultar("SELECT pg_advisory_xact_lock(hashtext('cita_medica.codigo'))");
         $numero = (int) $this->valor("SELECT COALESCE(max(substring(codigo FROM 4)::int), 0) + 1 FROM cita_medica WHERE codigo ~ '^CM-[0-9]+$'");
         return sprintf('CM-%04d', $numero);
     }
@@ -114,7 +115,7 @@ final class Ecita_medica extends Modelo
      */
     public function bloquearAgendaDe(int $medicoId): void
     {
-        $this->ejecutar('SELECT pg_advisory_xact_lock(1, CAST(? AS integer))', [$medicoId]);
+        $this->consultar('SELECT pg_advisory_xact_lock(1, CAST(? AS integer))', [$medicoId]);
     }
 
     /** Relee la cita bloqueando su fila hasta el fin de la transacción (evita cambios simultáneos). */

@@ -17,7 +17,7 @@ final class Emedico extends Modelo
 
     public function siguienteCodigo(): string
     {
-        $this->consultar("SELECT pg_advisory_xact_lock(hashtext('medico.codigo'))");
+        $this->consultar('SELECT id FROM perfil WHERE id = 1 FOR UPDATE');
         $numero = (int) $this->valor("SELECT COALESCE(max(substring(codigo FROM 3)::int), 0) + 1 FROM medico WHERE codigo ~ '^M-[0-9]+$'");
         return sprintf('M-%03d', $numero);
     }

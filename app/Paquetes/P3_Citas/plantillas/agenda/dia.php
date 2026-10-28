@@ -16,6 +16,7 @@ $fecha = new DateTimeImmutable($filtros['fecha']);
 $enlace = static fn (array $cambios): string => '?' . http_build_query(array_merge($filtros, $cambios));
 $diasSemana = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 $esMedico = !$medicos;
+$esHoy = $filtros['fecha'] === date('Y-m-d');
 $total = array_sum($conteo);
 $foto = $medico ? foto_medico($medico['codigo']) : null;
 ?>
@@ -87,6 +88,14 @@ $foto = $medico ? foto_medico($medico['codigo']) : null;
             </div>
             <div class="flex items-center justify-between gap-2">
               <?= parcial('badge_estado', ['tipo' => 'cita', 'estado' => $cita['estado']]) ?>
+              <?php if ($esMedico && (int) $cita['estado_cita_id'] === 3): ?>
+                <a href="<?= e(url('/citas/' . $cita['id'] . '/consulta')) ?>" class="btn-secundario btn-sm"><?= icono('clipboard-check') ?>Ver consulta</a>
+              <?php elseif ($esMedico && $esHoy && in_array((int) $cita['estado_cita_id'], [1, 2], true)): ?>
+                <a href="<?= e(url('/citas/' . $cita['id'] . '/consulta')) ?>" class="btn-primario btn-sm"><?= icono('stethoscope') ?>Atender</a>
+              <?php endif; ?>
+              <?php if (puede('historia.consultar') && ($esHoy || !$esMedico) && (int) $cita['estado_cita_id'] !== 4): ?>
+                <a href="<?= e(url('/pacientes/' . $cita['paciente_id'] . '/historia')) ?>" class="btn-icono sm" aria-label="Historia clínica de <?= e($cita['paciente']) ?>" title="Historia clínica"><i data-lucide="file-heart" class="w-4 h-4"></i></a>
+              <?php endif; ?>
               <a href="<?= e(url('/citas/' . $cita['id'] . '/comprobante')) ?>" class="btn-icono sm" aria-label="Detalle de <?= e($cita['codigo']) ?>"><i data-lucide="eye" class="w-4 h-4"></i></a>
             </div>
           </li>

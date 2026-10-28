@@ -9,3 +9,4 @@ recursos/marca
 bd/backup.mdj
 bd/*.png
 docker-compose.yml
+almacen/resultados/*.pdf

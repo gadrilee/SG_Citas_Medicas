@@ -139,7 +139,16 @@ final class Ecita_medica extends Modelo
     /** Relee la cita bloqueando su fila hasta el fin de la transacción (evita cambios simultáneos). */
     public function paraActualizar(int $id): ?array
     {
-        return $this->primero('SELECT id, codigo, paciente_id, medico_id, especialidad_id, estado_cita_id, inicio, fin FROM cita_medica WHERE id = ? FOR UPDATE', [$id]);
+        return $this->primero('SELECT id, codigo, paciente_id, medico_id, especialidad_id, estado_cita_id, inicio, fin, importe_acordado, moneda FROM cita_medica WHERE id = ? FOR UPDATE', [$id]);
+    }
+
+    /** CU16 y CU19: el médico solo accede a pacientes con una cita no cancelada con él hoy. */
+    public function medicoAtiendeHoy(int $medicoId, int $pacienteId): bool
+    {
+        return (bool) $this->valor(
+            'SELECT 1 FROM cita_medica WHERE medico_id = ? AND paciente_id = ? AND estado_cita_id <> 4 AND inicio::date = current_date LIMIT 1',
+            [$medicoId, $pacienteId]
+        );
     }
 
     public function cambiarIntervalo(int $id, string $inicio, string $fin): void

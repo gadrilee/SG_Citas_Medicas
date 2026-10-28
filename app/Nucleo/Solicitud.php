@@ -14,15 +14,17 @@ final class Solicitud
         private array $cuerpo = [],
         private array $archivos = [],
         private array $servidor = [],
+        private string $cuerpoCrudo = '',
     ) {
     }
 
     public static function desdeGlobales(): self
     {
+        $crudo = (string) file_get_contents('php://input');
         $cuerpo = $_POST;
         $tipo = $_SERVER['CONTENT_TYPE'] ?? '';
         if (str_contains($tipo, 'application/json')) {
-            $cuerpo = json_decode((string) file_get_contents('php://input'), true) ?: [];
+            $cuerpo = json_decode($crudo, true) ?: [];
         }
 
         $metodo = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
@@ -34,7 +36,13 @@ final class Solicitud
         $ruta = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
         $ruta = '/' . trim(rawurldecode($ruta), '/');
 
-        return new self($metodo, $ruta, $_GET, $cuerpo, $_FILES, $_SERVER);
+        return new self($metodo, $ruta, $_GET, $cuerpo, $_FILES, $_SERVER, $crudo);
+    }
+
+    /** Cuerpo original (necesario para verificar la firma del webhook de Stripe). */
+    public function cuerpoCrudo(): string
+    {
+        return $this->cuerpoCrudo;
     }
 
     public function metodo(): string

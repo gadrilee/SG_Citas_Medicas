@@ -1,6 +1,6 @@
 # Entorno local: PostgreSQL + aplicación + compilación de estilos en vivo.
 #   docker compose up --build        → http://localhost:8080
-#   docker compose down -v           → borra la base (se recrea con 001–004 al volver a subir)
+#   docker compose down -v           → borra la base (se recrea con 001–008 al volver a subir)
 services:
   bd:
     image: postgres:16-alpine
@@ -20,6 +20,8 @@ services:
       - ./bd/semillas/004_datos_demo.sql:/docker-entrypoint-initdb.d/004_datos_demo.sql:ro
       - ./bd/migraciones/005_tarifa_especialidad.sql:/docker-entrypoint-initdb.d/005_tarifa_especialidad.sql:ro
       - ./bd/semillas/006_datos_demo_p3.sql:/docker-entrypoint-initdb.d/006_datos_demo_p3.sql:ro
+      - ./bd/migraciones/007_pasarela_stripe.sql:/docker-entrypoint-initdb.d/007_pasarela_stripe.sql:ro
+      - ./bd/semillas/008_datos_demo_p4.sql:/docker-entrypoint-initdb.d/008_datos_demo_p4.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vida_salud -d vida_salud"]
       interval: 5s
@@ -34,6 +36,10 @@ services:
       APP_URL: http://localhost:8080
       DATABASE_URL: postgres://vida_salud:vida_salud@bd:5432/vida_salud
       PORT: 8080
+      # CU20: se leen del archivo .env de la raíz (docker compose lo usa para estas variables).
+      PASARELA: ${PASARELA:-simulada}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
     ports:
       # Si el 8080 está ocupado: PUERTO_APP=8090 docker compose up
       - "${PUERTO_APP:-8080}:8080"

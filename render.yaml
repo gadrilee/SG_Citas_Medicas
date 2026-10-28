@@ -15,9 +15,18 @@ services:
         value: produccion
       - key: APP_DEBUG
         value: "0"
+      # Firma las respuestas de la pasarela simulada (Render genera un valor aleatorio).
+      - key: APP_KEY
+        generateValue: true
+      # simulada | stripe
       - key: PASARELA
         value: simulada
       - key: APP_URL
         sync: false
       - key: DATABASE_URL
+        sync: false
+      # Solo si PASARELA=stripe (claves de modo prueba del panel de Stripe).
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
         sync: false

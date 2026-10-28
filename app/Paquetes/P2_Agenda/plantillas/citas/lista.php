@@ -87,6 +87,9 @@ $vigente = static fn (array $cita): bool => in_array((int) $cita['estado_cita_id
             </td>
             <td class="text-right"><div class="flex justify-end gap-1">
               <a href="<?= e(url('/citas/' . $cita['id'] . '/comprobante')) ?>" class="btn-icono sm" aria-label="Ver <?= e($cita['codigo']) ?>"><i data-lucide="eye" class="w-4 h-4"></i></a>
+              <?php if (in_array((int) $cita['estado_cita_id'], [1, 2], true) && !in_array((int) $cita['id'], $conPagoAprobado, true) && (float) $cita['importe_acordado'] > 0 && puede('pagos.gestionar')): ?>
+                <a href="<?= e(url('/citas/' . $cita['id'] . '/pagar')) ?>" class="btn-icono sm" aria-label="Cobrar <?= e($cita['codigo']) ?>" title="Cobrar"><i data-lucide="credit-card" class="w-4 h-4"></i></a>
+              <?php endif; ?>
               <?php if ($vigente($cita) && puede('citas.reprogramar')): ?>
                 <a href="<?= e(url('/citas/' . $cita['id'] . '/reprogramar')) ?>" class="btn-icono sm" aria-label="Reprogramar <?= e($cita['codigo']) ?>"><i data-lucide="calendar-sync" class="w-4 h-4"></i></a>
               <?php endif; ?>

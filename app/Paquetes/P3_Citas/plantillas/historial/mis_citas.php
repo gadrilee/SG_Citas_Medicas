@@ -45,6 +45,9 @@ $tarjeta = static function (array $cita, array $eventos, bool $pagada, bool $esV
         </details>
       <?php endif; ?>
       <div class="flex flex-wrap items-center gap-2 pt-1">
+        <?php if ($esVigente && !$pagada && (float) $cita['importe_acordado'] > 0 && puede('pagos.gestionar')): ?>
+          <a href="<?= e(url('/citas/' . $cita['id'] . '/pagar')) ?>" class="btn-primario btn-sm"><?= icono('credit-card') ?>Pagar</a>
+        <?php endif; ?>
         <?php if ($esVigente && puede('citas.reprogramar')): ?>
           <a href="<?= e(url('/citas/' . $cita['id'] . '/reprogramar')) ?>" class="btn-secundario btn-sm"><?= icono('calendar-sync') ?>Reprogramar</a>
         <?php endif; ?>

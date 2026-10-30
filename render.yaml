@@ -26,6 +26,8 @@ services:
       - key: DATABASE_URL
         sync: false
       # Solo si PASARELA=stripe (claves de modo prueba del panel de Stripe).
+      - key: STRIPE_PUBLIC_KEY
+        sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET

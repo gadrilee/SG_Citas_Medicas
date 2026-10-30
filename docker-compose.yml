@@ -10,7 +10,8 @@ services:
       POSTGRES_PASSWORD: vida_salud
       TZ: America/La_Paz
     ports:
-      - "5433:5432"
+      # Si el 5433 está ocupado por otro proyecto: PUERTO_BD=5434 en .env (y el mismo puerto en DATABASE_URL)
+      - "${PUERTO_BD:-5433}:5432"
     volumes:
       - datos_bd:/var/lib/postgresql/data
       # Se ejecutan en orden alfabético solo la primera vez (volumen vacío).
@@ -38,6 +39,7 @@ services:
       PORT: 8080
       # CU20: se leen del archivo .env de la raíz (docker compose lo usa para estas variables).
       PASARELA: ${PASARELA:-simulada}
+      STRIPE_PUBLIC_KEY: ${STRIPE_PUBLIC_KEY:-}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
     ports:

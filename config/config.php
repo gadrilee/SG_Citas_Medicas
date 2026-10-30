@@ -18,6 +18,8 @@ return [
     'pasarela'     => getenv('PASARELA') ?: 'simulada',
     'moneda'       => 'BOB',
     'stripe'       => [
+        // La clave pública (pk_test_…) la usa Stripe.js para dibujar el formulario en la página.
+        'publica' => getenv('STRIPE_PUBLIC_KEY') ?: '',
         'secreta' => getenv('STRIPE_SECRET_KEY') ?: '',
         'webhook' => getenv('STRIPE_WEBHOOK_SECRET') ?: '',
     ],

@@ -29,12 +29,6 @@ final class Respuesta
         return new self('', $codigo, ['Location' => url($ruta)]);
     }
 
-    /** Redirección a otro sitio (formulario de pago de la pasarela). */
-    public static function redirigirExterna(string $url): self
-    {
-        return new self('', 303, ['Location' => $url]);
-    }
-
     /** Envía un archivo (informe PDF) para verlo en el navegador. */
     public static function archivo(string $ruta, string $tipo, string $nombre): self
     {

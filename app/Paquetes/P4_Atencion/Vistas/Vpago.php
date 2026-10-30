@@ -7,7 +7,7 @@ namespace VidaSalud\Paquetes\P4_Atencion\Vistas;
 use VidaSalud\Nucleo\Respuesta;
 use VidaSalud\Nucleo\Vista;
 
-/** CU20 · Caja, pago de una cita, formulario de la pasarela simulada y comprobante. */
+/** CU20 · Caja, pago de una cita (con el formulario de la pasarela embebido) y comprobante. */
 final class Vpago extends Vista
 {
     public function mostrarLista(array $resultado, array $resumen, array $devoluciones, array $filtros): Respuesta
@@ -22,7 +22,11 @@ final class Vpago extends Vista
         ]);
     }
 
-    public function mostrarPagar(array $cita, array $intentos, ?string $motivoNoPagable, ?array $pasarela): Respuesta
+    /**
+     * @param array|null $pendiente   intento pendiente de la cita (Epago::buscarDetalle)
+     * @param array|null $formulario  PasarelaPago::formulario del intento pendiente
+     */
+    public function mostrarPagar(array $cita, array $intentos, ?string $motivoNoPagable, ?array $pasarela, ?array $pendiente, ?array $formulario): Respuesta
     {
         return $this->render('pagos/pagar', [
             'titulo'          => 'Pagar ' . $cita['codigo'],
@@ -31,13 +35,9 @@ final class Vpago extends Vista
             'intentos'        => $intentos,
             'motivoNoPagable' => $motivoNoPagable,
             'pasarela'        => $pasarela,
+            'pendiente'       => $pendiente,
+            'formulario'      => $formulario,
         ]);
-    }
-
-    /** Pantalla sin menú: representa el sitio externo de la pasarela. */
-    public function mostrarSimulada(array $pago): Respuesta
-    {
-        return $this->render('pagos/simulada', ['titulo' => 'Vida Pay · Pago seguro', 'pago' => $pago, 'clase_main' => 'min-h-screen flex items-center justify-center p-4'], 'simple');
     }
 
     public function mostrarComprobante(array $pago, array $cita): Respuesta

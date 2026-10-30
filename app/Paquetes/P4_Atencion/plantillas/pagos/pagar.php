@@ -1,17 +1,21 @@
 <?php
 /**
- * CU20 · Pagar una cita: resumen, intentos anteriores y botón «Pagar».
+ * CU20 · Pagar una cita: resumen, intentos anteriores y botón «Pagar». Con un intento pendiente, el
+ * formulario de la pasarela se muestra aquí mismo: Stripe embebido o la tarjeta de Vida Pay.
  * @var array       $cita             Ecita_medica::buscarDetalle
  * @var array       $intentos         Epago::deCita (el más reciente primero)
  * @var string|null $motivoNoPagable  null = se puede pagar
  * @var array|null  $pasarela         pasarela activa (pasarela_pago)
+ * @var array|null  $pendiente        intento pendiente (Epago::buscarDetalle)
+ * @var array|null  $formulario       PasarelaPago::formulario del intento pendiente
+ * @var array       $errores
+ * @var array       $anterior
  */
 $aprobado = null;
-$pendiente = null;
 foreach ($intentos as $intento) {
     $aprobado ??= $intento['estado'] === 'aprobado' ? $intento : null;
-    $pendiente ??= $intento['estado'] === 'pendiente' ? $intento : null;
 }
+$tipoFormulario = $formulario['tipo'] ?? null;
 $volver = (usuario_actual()['perfil'] ?? '') === 'paciente' ? ['/mis-citas', 'Volver a mis citas'] : ['/citas/' . $cita['id'] . '/comprobante', 'Volver a la cita'];
 ?>
 <a href="<?= e(url($volver[0])) ?>" class="btn-fantasma btn-sm -ml-3 mb-4"><?= icono('arrow-left') ?><?= e($volver[1]) ?></a>
@@ -38,6 +42,40 @@ $volver = (usuario_actual()['perfil'] ?? '') === 'paciente' ? ['/mis-citas', 'Vo
     <?php if ($aprobado): ?>
       <div class="alerta alerta-exito mt-6"><i data-lucide="circle-check"></i><p>Esta cita ya está pagada (referencia <span class="font-mono"><?= e($aprobado['referencia_externa']) ?></span>).</p></div>
       <a href="<?= e(url('/pagos/' . $aprobado['id'])) ?>" class="btn-primario btn-grande w-full mt-4"><?= icono('receipt-text') ?>Ver comprobante de pago</a>
+    <?php elseif ($pendiente && $tipoFormulario === 'stripe'): ?>
+      <div class="mt-6 rounded-2xl overflow-hidden p-2" style="background:#fff;min-height:420px" id="checkout-stripe"
+           data-clave-publica="<?= e($formulario['clave_publica']) ?>" data-client-secret="<?= e($formulario['client_secret']) ?>">
+        <p class="text-center text-sm" style="color:#64748b;padding:4rem 0">Cargando el formulario seguro de Stripe…</p>
+      </div>
+      <p class="text-center text-xs text-subtle mt-3">Stripe modo prueba · Tarjeta <span class="font-mono">4242 4242 4242 4242</span>, cualquier fecha futura y CVC.</p>
+      <form method="post" action="<?= e(url('/pagos/' . $pendiente['id'] . '/anular')) ?>" class="text-center mt-2"><?= csrf_campo() ?><button type="submit" class="btn-fantasma btn-sm"><?= icono('x') ?>Cancelar este intento</button></form>
+      <script src="https://js.stripe.com/v3/"></script>
+      <script src="<?= e(recurso('js/pagos.js')) ?>"></script>
+    <?php elseif ($pendiente && $tipoFormulario === 'simulada'): ?>
+      <form method="post" action="<?= e(url('/pagos/simulada/' . $pendiente['id'])) ?>" class="mt-6 grid gap-4" data-validar novalidate aria-label="Vida Pay">
+        <?= csrf_campo() ?>
+        <p class="flex items-center gap-2 text-sm font-semibold"><?= icono('shield-check', 'w-4 h-4 texto-acento') ?>Vida Pay · pasarela simulada <span class="font-mono font-normal text-subtle text-xs"><?= e($pendiente['referencia_externa']) ?></span></p>
+        <div>
+          <label for="numero_tarjeta" class="etiqueta">Número de tarjeta</label>
+          <input id="numero_tarjeta" name="numero_tarjeta" class="campo numeros<?= marca_error($errores, 'numero_tarjeta') ?>" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242" required maxlength="25" value="<?= e($anterior['numero_tarjeta'] ?? '') ?>">
+          <?= error_campo($errores, 'numero_tarjeta') ?>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="vencimiento" class="etiqueta">Vencimiento</label>
+            <input id="vencimiento" name="vencimiento" class="campo numeros<?= marca_error($errores, 'vencimiento') ?>" placeholder="MM/AA" autocomplete="cc-exp" required maxlength="7" value="<?= e($anterior['vencimiento'] ?? '') ?>">
+            <?= error_campo($errores, 'vencimiento') ?>
+          </div>
+          <div>
+            <label for="cvc" class="etiqueta">CVC</label>
+            <input id="cvc" name="cvc" class="campo numeros<?= marca_error($errores, 'cvc') ?>" placeholder="123" inputmode="numeric" autocomplete="cc-csc" required maxlength="4">
+            <?= error_campo($errores, 'cvc') ?>
+          </div>
+        </div>
+        <button type="submit" class="btn-primario btn-grande w-full"><?= icono('lock-keyhole') ?>Pagar <?= e(bs($pendiente['importe'])) ?></button>
+        <p class="text-center text-xs text-subtle">Tarjetas de prueba: <span class="font-mono">4242 4242 4242 4242</span> se aprueba y <span class="font-mono">4000 0000 0000 0002</span> se rechaza. No se procesa ningún cargo real.</p>
+      </form>
+      <form method="post" action="<?= e(url('/pagos/' . $pendiente['id'] . '/anular')) ?>" class="text-center mt-2"><?= csrf_campo() ?><button type="submit" class="btn-fantasma btn-sm"><?= icono('x') ?>Cancelar este intento</button></form>
     <?php elseif ($pendiente): ?>
       <div class="alerta alerta-aviso mt-6"><i data-lucide="hourglass"></i><p>Hay un intento de pago pendiente desde las <?= e(hora_corta($pendiente['creado_en'])) ?>. Verifica con la pasarela si se completó; si no, anúlalo para reintentar.</p></div>
       <div class="flex flex-col sm:flex-row gap-2 mt-4">
@@ -53,7 +91,7 @@ $volver = (usuario_actual()['perfil'] ?? '') === 'paciente' ? ['/mis-citas', 'Vo
         <?= csrf_campo() ?>
         <button type="submit" class="btn-primario btn-grande w-full"><?= icono('lock-keyhole') ?>Pagar <?= e(bs($cita['importe_acordado'])) ?></button>
         <p class="text-center text-xs text-subtle mt-3">
-          <?= $pasarela['codigo'] === 'stripe' ? 'Serás redirigido a Stripe (modo prueba). Usa la tarjeta 4242 4242 4242 4242.' : 'Modo demostración · No se procesará ningún cargo real.' ?>
+          <?= $pasarela['codigo'] === 'stripe' ? 'El formulario seguro de Stripe (modo prueba) se abrirá aquí mismo.' : 'Modo demostración · No se procesará ningún cargo real.' ?>
         </p>
       </form>
     <?php endif; ?>

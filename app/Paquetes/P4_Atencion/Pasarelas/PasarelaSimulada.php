@@ -8,7 +8,7 @@ use VidaSalud\Nucleo\Excepciones\ExcepcionNegocio;
 
 /**
  * «Vida Pay»: pasarela simulada para la defensa, sin cuentas ni internet. Imita a una pasarela real:
- * su formulario cobra la tarjeta y devuelve el resultado FIRMADO (HMAC-SHA256). El sistema verifica
+ * su formulario (embebido en la página de pago) cobra la tarjeta y devuelve el resultado FIRMADO (HMAC-SHA256). El sistema verifica
  * esa firma antes de cambiar el estado, así nadie puede aprobar un pago editando la URL.
  *
  * Tarjetas de prueba (como las de Stripe): 4242 4242 4242 4242 se aprueba, 4000 0000 0000 0002 se rechaza.
@@ -19,12 +19,15 @@ final class PasarelaSimulada implements PasarelaPago
     {
     }
 
-    public function iniciar(array $pago, array $cita, string $urlRetorno): array
+    public function iniciar(array $pago, array $cita, string $urlRetorno): string
     {
-        return [
-            'referencia' => 'VP-' . strtoupper(bin2hex(random_bytes(5))),
-            'url'        => '/pagos/simulada/' . $pago['id'],
-        ];
+        return 'VP-' . strtoupper(bin2hex(random_bytes(5)));
+    }
+
+    /** El formulario de tarjeta de Vida Pay se dibuja en la misma página de pago. */
+    public function formulario(array $pago): ?array
+    {
+        return ['tipo' => 'simulada'];
     }
 
     /** Lo que hace la pasarela al presionar «Pagar»: decide el resultado y lo firma. */

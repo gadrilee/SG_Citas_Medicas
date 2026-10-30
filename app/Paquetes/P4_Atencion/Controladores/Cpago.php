@@ -48,20 +48,27 @@ final class Cpago extends Controlador
 
     // ---------------------------------------------------------------- flujo principal
 
-    /** Paso 1: resumen de la cita, sus intentos anteriores y el botón «Pagar». */
+    /**
+     * Paso 1: resumen de la cita, sus intentos y el botón «Pagar». Si ya hay un intento pendiente, la
+     * página muestra ahí mismo el formulario de su pasarela (Stripe embebido o la tarjeta de Vida Pay).
+     */
     public function mostrarPagar(string $id): Respuesta
     {
         $cita = $this->citaAccesible($id);
         $pagos = new Epago();
+        $vigente = $pagos->vigenteDeCita((int) $cita['id']);
+        $pendiente = $vigente && $vigente['estado'] === 'pendiente' ? $pagos->buscarDetalle((int) $vigente['id']) : null;
         return (new Vpago())->mostrarPagar(
             $cita,
             $pagos->deCita((int) $cita['id']),
-            self::motivoNoPagable($cita, $pagos->vigenteDeCita((int) $cita['id'])),
-            $this->pasarelaActiva()
+            self::motivoNoPagable($cita, $vigente),
+            $this->pasarelaActiva(),
+            $pendiente,
+            $pendiente ? $this->formularioDe($pendiente) : null
         );
     }
 
-    /** Pasos 2–3: crea el intento pendiente (en una transacción) y lleva al usuario al formulario de la pasarela. */
+    /** Pasos 2–3: crea el intento pendiente (en una transacción), lo registra en la pasarela y vuelve a la misma página. */
     public function iniciar(string $id): Respuesta
     {
         $cita = $this->citaAccesible($id);
@@ -82,35 +89,22 @@ final class Cpago extends Controlador
 
         $pago = $pagos->buscarDetalle($pagoId);
         try {
-            $cobro = Pasarelas::crear($pasarela['codigo'])->iniciar($pago, $cita, $this->urlRetorno($pagoId));
+            $referencia = Pasarelas::crear($pasarela['codigo'])->iniciar($pago, $cita, $this->urlRetorno($pagoId));
         } catch (ExcepcionNegocio $error) {
             // La pasarela no recibió el cobro: el intento se cierra para poder reintentar.
             $pagos->registrarEstado($pagoId, 'cancelado');
             throw $error;
         }
-        $pagos->asignarReferencia($pagoId, $cobro['referencia']);
-        return str_starts_with($cobro['url'], 'http') ? Respuesta::redirigirExterna($cobro['url']) : $this->redirigir($cobro['url']);
+        $pagos->asignarReferencia($pagoId, $referencia);
+        return $this->redirigir('/citas/' . $cita['id'] . '/pagar');
     }
 
-    /** Formulario de «Vida Pay» (hace el papel del sitio externo de la pasarela simulada). */
-    public function mostrarSimulada(string $id): Respuesta
-    {
-        $pago = $this->pagoAccesible($id);
-        if ($pago['pasarela_codigo'] !== 'simulada' || $pago['estado'] !== 'pendiente') {
-            return $this->redirigir('/pagos/' . $pago['id']);
-        }
-        return (new Vpago())->mostrarSimulada($pago);
-    }
-
-    /** Paso 4 (simulado): la pasarela cobra y devuelve al sistema su respuesta firmada. */
+    /** Paso 4 (simulado): Vida Pay cobra la tarjeta y devuelve al sistema su respuesta firmada. */
     public function cobrarSimulada(string $id): Respuesta
     {
         $pago = $this->pagoAccesible($id);
         if ($pago['pasarela_codigo'] !== 'simulada' || $pago['estado'] !== 'pendiente') {
             return $this->redirigir('/pagos/' . $pago['id']);
-        }
-        if ($this->solicitud->entrada('accion') === 'cancelar') {
-            return $this->redirigir('/pagos/retorno?pago=' . $pago['id'] . '&cancelado=1');
         }
         $datos = $this->validar(['numero_tarjeta' => 'requerido|max:25', 'vencimiento' => 'requerido|max:7', 'cvc' => 'requerido|max:4']);
         $respuesta = Pasarelas::simulada()->cobrar($pago, $datos['numero_tarjeta']);
@@ -121,18 +115,7 @@ final class Cpago extends Controlador
     public function retorno(): Respuesta
     {
         $pago = $this->pagoAccesible((string) $this->solicitud->consulta('pago', ''));
-        $usuarioId = (int) $this->usuario()['id'];
-
-        if ($this->solicitud->consulta('cancelado')) {
-            // El usuario volvió sin pagar: se confirma con la pasarela que no hubo cobro y se cierra el intento.
-            $estado = $this->verificarConPasarela($pago, [], $usuarioId);
-            if ($estado === 'pendiente') {
-                Pasarelas::crear($pago['pasarela_codigo'])->anular($pago);
-                $estado = $this->registrarRespuesta((int) $pago['id'], ['estado' => 'cancelado'], $usuarioId);
-            }
-        } else {
-            $estado = $this->verificarConPasarela($pago, $this->solicitud->todo(), $usuarioId);
-        }
+        $estado = $this->verificarConPasarela($pago, $this->solicitud->todo(), (int) $this->usuario()['id']);
 
         [$tipo, $mensaje] = self::mensaje($estado, $pago['cita']);
         $destino = $estado === 'aprobado' ? '/pagos/' . $pago['id'] : '/citas/' . $pago['cita_id'] . '/pagar';
@@ -298,6 +281,16 @@ final class Cpago extends Controlador
             throw new ExcepcionAcceso('No tienes acceso a este pago.');
         }
         return $pago;
+    }
+
+    /** Formulario embebido del intento pendiente; si la pasarela no responde, se ofrece verificar o anular (A2). */
+    private function formularioDe(array $pago): ?array
+    {
+        try {
+            return Pasarelas::crear($pago['pasarela_codigo'])->formulario($pago);
+        } catch (ExcepcionNegocio) {
+            return null;
+        }
     }
 
     private function pasarelaActiva(): ?array

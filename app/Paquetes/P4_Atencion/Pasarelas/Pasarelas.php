@@ -26,6 +26,10 @@ final class Pasarelas
 
     public static function stripe(): PasarelaStripe
     {
-        return new PasarelaStripe((string) Configuracion::obtener('stripe.secreta'), (string) Configuracion::obtener('stripe.webhook'));
+        return new PasarelaStripe(
+            (string) Configuracion::obtener('stripe.secreta'),
+            (string) Configuracion::obtener('stripe.webhook'),
+            (string) Configuracion::obtener('stripe.publica')
+        );
     }
 }

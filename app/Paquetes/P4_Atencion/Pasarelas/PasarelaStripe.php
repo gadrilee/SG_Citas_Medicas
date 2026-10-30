@@ -7,9 +7,10 @@ namespace VidaSalud\Paquetes\P4_Atencion\Pasarelas;
 use VidaSalud\Nucleo\Excepciones\ExcepcionNegocio;
 
 /**
- * Stripe en modo prueba mediante su API REST (cURL, sin SDK). Usa Stripe Checkout: el sistema crea una
- * «sesión de pago», el usuario paga en la página de Stripe y vuelve. Para saber el resultado se consulta
- * la sesión directamente a Stripe (paso 5), tanto al volver el usuario como al llegar el webhook.
+ * Stripe en modo prueba mediante su API REST (cURL, sin SDK). Usa Stripe Checkout EMBEBIDO: el sistema
+ * crea una «sesión de pago» y Stripe.js dibuja su formulario dentro de nuestra página de pago (el usuario
+ * no sale del sitio). Para saber el resultado se consulta la sesión directamente a Stripe (paso 5),
+ * tanto al volver el usuario como al llegar el webhook.
  *
  * Tarjeta de prueba: 4242 4242 4242 4242, cualquier fecha futura y CVC.
  */
@@ -18,14 +19,15 @@ final class PasarelaStripe implements PasarelaPago
     private const API = 'https://api.stripe.com/v1/';
     private const TOLERANCIA_WEBHOOK = 300;
 
-    public function __construct(private string $claveSecreta, private string $secretoWebhook = '')
+    public function __construct(private string $claveSecreta, private string $secretoWebhook = '', private string $clavePublica = '')
     {
     }
 
-    public function iniciar(array $pago, array $cita, string $urlRetorno): array
+    public function iniciar(array $pago, array $cita, string $urlRetorno): string
     {
         $sesion = $this->llamar('POST', 'checkout/sessions', [
             'mode'                => 'payment',
+            'ui_mode'             => 'embedded_page',
             'client_reference_id' => $pago['id'],
             'metadata'            => ['pago_id' => $pago['id'], 'cita' => $cita['codigo']],
             'line_items'          => [[
@@ -36,11 +38,27 @@ final class PasarelaStripe implements PasarelaPago
                     'product_data' => ['name' => 'Cita ' . $cita['codigo'] . ' · ' . $cita['especialidad'] . ' · Clínica Vida Salud'],
                 ],
             ]],
-            'success_url' => $urlRetorno . '&session_id={CHECKOUT_SESSION_ID}',
-            'cancel_url'  => $urlRetorno . '&cancelado=1',
+            // Al terminar el pago, Stripe lleva al usuario de vuelta a nuestro retorno (paso 4).
+            'return_url' => $urlRetorno . '&session_id={CHECKOUT_SESSION_ID}',
         ], (string) $pago['clave_idempotencia']);
 
-        return ['referencia' => $sesion['id'], 'url' => $sesion['url']];
+        return $sesion['id'];
+    }
+
+    /** Mientras la sesión siga abierta, su client_secret permite dibujar el formulario de Stripe en la página. */
+    public function formulario(array $pago): ?array
+    {
+        if (empty($pago['referencia_externa'])) {
+            return null;
+        }
+        if ($this->clavePublica === '') {
+            throw new ExcepcionNegocio('Stripe no está configurado (falta STRIPE_PUBLIC_KEY).');
+        }
+        $sesion = $this->llamar('GET', 'checkout/sessions/' . rawurlencode($pago['referencia_externa']));
+        if ($sesion['status'] !== 'open' || empty($sesion['client_secret'])) {
+            return null;
+        }
+        return ['tipo' => 'stripe', 'client_secret' => $sesion['client_secret'], 'clave_publica' => $this->clavePublica];
     }
 
     public function verificar(array $pago, array $datosRetorno): array

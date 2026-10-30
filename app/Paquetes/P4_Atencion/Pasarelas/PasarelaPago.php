@@ -12,8 +12,15 @@ namespace VidaSalud\Paquetes\P4_Atencion\Pasarelas;
  */
 interface PasarelaPago
 {
-    /** Paso 3: registra el cobro en la pasarela. Devuelve ['referencia' => …, 'url' => formulario de pago]. */
-    public function iniciar(array $pago, array $cita, string $urlRetorno): array;
+    /** Paso 3: registra el cobro en la pasarela y devuelve su referencia. */
+    public function iniciar(array $pago, array $cita, string $urlRetorno): string;
+
+    /**
+     * Datos para mostrar el formulario de pago DENTRO de la página del sistema (sin salir del sitio):
+     * ['tipo' => 'simulada'] o ['tipo' => 'stripe', 'client_secret' => …, 'clave_publica' => …].
+     * null si el intento ya no admite pagar (por ejemplo, la sesión de Stripe expiró).
+     */
+    public function formulario(array $pago): ?array;
 
     /** Paso 5: consulta a la pasarela cómo terminó el cobro (nunca se confía solo en lo que trae el navegador). */
     public function verificar(array $pago, array $datosRetorno): array;

@@ -21,6 +21,16 @@ final class Vresultado extends Vista
         ]);
     }
 
+    /** Informe formal imprimible y descargable en PDF. */
+    public function mostrarInforme(array $estudio): Respuesta
+    {
+        return $this->render('resultados/informe', [
+            'titulo'  => 'Informe LAB-' . str_pad((string) $estudio['id'], 6, '0', STR_PAD_LEFT),
+            'migas'   => 'Mis resultados',
+            'estudio' => $estudio,
+        ]);
+    }
+
     public function mostrarMisResultados(array $estudios): Respuesta
     {
         return $this->render('resultados/mis_resultados', [

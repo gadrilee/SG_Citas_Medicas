@@ -7,7 +7,7 @@
 <div class="mb-6">
   <p class="sobretitulo">CU19 · Laboratorio</p>
   <h1 class="titulo-pagina">Mis resultados</h1>
-  <p class="texto">Resultados de los estudios que te indicaron, con la fecha de publicación y quién los publicó.</p>
+  <p class="texto">Resultados de los estudios que te indicaron. Abre el informe para verlo completo, imprimirlo o descargarlo en PDF.</p>
 </div>
 
 <?php if (!$estudios): ?>
@@ -23,9 +23,7 @@
             <p class="texto text-sm">Solicitado por <?= e($estudio['medico']) ?> · <span class="numeros"><?= e(fecha_corta($estudio['solicitado_en'])) ?></span> · cita <span class="font-mono"><?= e($estudio['cita']) ?></span></p>
           </div>
           <?= parcial('badge_estado', ['tipo' => 'estudio', 'estado' => $estudio['estado']]) ?>
-          <?php if ($estudio['archivo_referencia']): ?>
-            <a href="<?= e(url('/estudios/' . $estudio['id'] . '/informe')) ?>" target="_blank" rel="noopener" class="btn-secundario btn-sm"><?= icono('download') ?>Ver informe PDF</a>
-          <?php endif; ?>
+          <a href="<?= e(url('/estudios/' . $estudio['id'] . '/resultado')) ?>" class="btn-primario btn-sm"><?= icono('file-text') ?>Ver informe</a>
         </div>
         <?php if ($estudio['resultado_texto']): ?>
           <div class="rounded-2xl p-4 fondo-acento-suave text-sm whitespace-pre-line"><?= e($estudio['resultado_texto']) ?></div>

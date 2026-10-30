@@ -98,19 +98,18 @@ final class Cresultado extends Controlador
         );
     }
 
-    /** Descarga del informe: el paciente el suyo publicado; el médico los de sus pacientes. */
+    /** Paso 6: informe formal del resultado (encabezado de la clínica, paciente, solicitud, resultado y responsable). */
+    public function informe(string $id): Respuesta
+    {
+        $estudio = $this->estudioVisible((int) $id);
+        return (new Vresultado())->mostrarInforme((new Estudio())->paraInforme((int) $estudio['id']));
+    }
+
+    /** PDF adjunto por el médico: el paciente el suyo publicado; el médico los de sus pacientes. */
     public function descargar(string $id): Respuesta
     {
-        $estudio = (new Estudio())->buscarDetalle((int) $id);
-        $usuario = $this->usuario();
-        $propio = (int) $usuario['datos_personales_id'];
-        $permitido = $estudio && $estudio['estado'] === Estudio::DISPONIBLE && match ($usuario['perfil']) {
-            'paciente' => (int) $estudio['paciente_id'] === $propio,
-            'medico'   => (int) $estudio['medico_id'] === $propio || (new Ecita_medica())->medicoAtiendeHoy($propio, (int) $estudio['paciente_id']),
-            default    => false,
-        };
-        // E3: para quien no puede verlo, el estudio simplemente no existe.
-        if (!$permitido || !preg_match('#^resultados/[a-f0-9]{32}\.pdf$#', (string) $estudio['archivo_referencia'])) {
+        $estudio = $this->estudioVisible((int) $id);
+        if (!preg_match('#^resultados/[a-f0-9]{32}\.pdf$#', (string) $estudio['archivo_referencia'])) {
             throw new ExcepcionNoEncontrado('El informe no existe o no está disponible.');
         }
         $ruta = self::carpeta() . '/' . $estudio['archivo_referencia'];
@@ -119,6 +118,26 @@ final class Cresultado extends Controlador
         }
         Bitacora::registrar('descargar', 'estudio_laboratorio', (int) $estudio['id']);
         return Respuesta::archivo($ruta, 'application/pdf', 'resultado-' . $estudio['id'] . '.pdf');
+    }
+
+    /**
+     * Estudio publicado que el usuario puede ver: el paciente solo los suyos; el médico los que solicitó
+     * o los de sus pacientes del día. E3: para quien no puede verlo, el estudio simplemente no existe.
+     */
+    private function estudioVisible(int $id): array
+    {
+        $estudio = (new Estudio())->buscarDetalle($id);
+        $usuario = $this->usuario();
+        $propio = (int) $usuario['datos_personales_id'];
+        $permitido = $estudio && $estudio['estado'] === Estudio::DISPONIBLE && match ($usuario['perfil']) {
+            'paciente' => (int) $estudio['paciente_id'] === $propio,
+            'medico'   => (int) $estudio['medico_id'] === $propio || (new Ecita_medica())->medicoAtiendeHoy($propio, (int) $estudio['paciente_id']),
+            default    => false,
+        };
+        if (!$permitido) {
+            throw new ExcepcionNoEncontrado('El resultado no existe o todavía no está publicado.');
+        }
+        return $estudio;
     }
 
     private function estudioDelMedico(string $id): array

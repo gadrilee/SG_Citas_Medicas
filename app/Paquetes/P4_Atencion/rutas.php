@@ -23,6 +23,7 @@ return [
     ['GET', '/estudios', [Cresultado::class, 'listar'], 'resultados.publicar'],
     ['POST', '/estudios/{id}/en-proceso', [Cresultado::class, 'marcarEnProceso'], 'resultados.publicar'],
     ['POST', '/estudios/{id}/publicar', [Cresultado::class, 'publicar'], 'resultados.publicar'],
+    ['GET', '/estudios/{id}/resultado', [Cresultado::class, 'informe'], 'resultados.consultar'],
     ['GET', '/estudios/{id}/informe', [Cresultado::class, 'descargar'], 'resultados.consultar'],
     ['GET', '/mis-resultados', [Cresultado::class, 'misResultados'], 'resultados.consultar'],
 
@@ -32,7 +33,6 @@ return [
     ['POST', '/citas/{id}/pagar', [Cpago::class, 'iniciar'], 'pagos.gestionar'],
     ['GET', '/pagos/retorno', [Cpago::class, 'retorno'], 'pagos.gestionar'],
     ['POST', '/pagos/webhook', [Cpago::class, 'webhook'], null, ['csrf' => false]],
-    ['GET', '/pagos/simulada/{id}', [Cpago::class, 'mostrarSimulada'], 'pagos.gestionar'],
     ['POST', '/pagos/simulada/{id}', [Cpago::class, 'cobrarSimulada'], 'pagos.gestionar'],
     ['GET', '/pagos/{id}', [Cpago::class, 'comprobante'], 'pagos.gestionar'],
     ['POST', '/pagos/{id}/verificar', [Cpago::class, 'verificar'], 'pagos.gestionar'],

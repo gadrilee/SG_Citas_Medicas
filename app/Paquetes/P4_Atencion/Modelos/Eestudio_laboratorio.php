@@ -58,6 +58,27 @@ final class Eestudio_laboratorio extends Modelo
         return $this->primero(self::LISTADO . ' WHERE es.id = ?', [$id]);
     }
 
+    /**
+     * CU19 · Datos del informe formal: paciente, solicitud (médico y especialidad) y responsable que
+     * publicó el resultado con su matrícula profesional.
+     */
+    public function paraInforme(int $id): ?array
+    {
+        return $this->primero(
+            'SELECT ' . self::COLUMNAS . ",
+                    dp.ci, dp.fecha_nacimiento, dp.sexo, dp.telefono,
+                    e.nombre AS especialidad, co.fecha_hora AS fecha_consulta,
+                    CASE WHEN dr.sexo = 'Femenino' THEN 'Dra. ' ELSE 'Dr. ' END || dr.nombres || ' ' || dr.apellidos AS responsable,
+                    mr.nro_registro_profesional AS matricula_responsable
+               " . self::DESDE . '
+               JOIN especialidad e ON e.id = c.especialidad_id
+               LEFT JOIN datos_personales dr ON dr.id = up.datos_personales_id
+               LEFT JOIN medico mr ON mr.id = up.datos_personales_id
+              WHERE es.id = ?',
+            [$id]
+        );
+    }
+
     public function paraActualizar(int $id): ?array
     {
         return $this->primero('SELECT id, estado FROM estudio_laboratorio WHERE id = ? FOR UPDATE', [$id]);

@@ -48,9 +48,7 @@ $conHistoria = $ficha !== [];
           <li>
             <p class="flex justify-between gap-2"><span class="font-medium"><?= e($estudio['nombre_estudio']) ?></span><span class="numeros text-subtle"><?= e(fecha_corta($estudio['publicado_en'])) ?></span></p>
             <?php if ($estudio['resultado_texto']): ?><p class="text-muted whitespace-pre-line"><?= e($estudio['resultado_texto']) ?></p><?php endif; ?>
-            <?php if ($estudio['archivo_referencia']): ?>
-              <a href="<?= e(url('/estudios/' . $estudio['id'] . '/informe')) ?>" target="_blank" rel="noopener" class="texto-acento text-sm inline-flex items-center gap-1"><?= icono('file-text') ?>Ver informe PDF</a>
-            <?php endif; ?>
+            <a href="<?= e(url('/estudios/' . $estudio['id'] . '/resultado')) ?>" class="texto-acento text-sm inline-flex items-center gap-1"><?= icono('file-text') ?>Ver informe</a>
           </li>
         <?php endforeach; ?>
       </ul>

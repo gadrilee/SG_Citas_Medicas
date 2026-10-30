@@ -64,12 +64,7 @@ $enlace = static fn (string $estado): string => url('/estudios') . '?' . http_bu
               <?php if ($estudio['estado'] !== 'disponible'): ?>
                 <button type="button" class="btn-primario btn-sm" data-abrir-modal="modal-publicar" data-accion="<?= e(url('/estudios/' . $estudio['id'] . '/publicar')) ?>" data-nombre="<?= e($estudio['nombre_estudio'] . ' · ' . $estudio['paciente']) ?>"><?= icono('upload') ?>Publicar</button>
               <?php else: ?>
-                <?php if ($estudio['archivo_referencia']): ?>
-                  <a href="<?= e(url('/estudios/' . $estudio['id'] . '/informe')) ?>" target="_blank" rel="noopener" class="btn-icono sm" aria-label="Ver informe de <?= e($estudio['nombre_estudio']) ?>"><i data-lucide="file-text" class="w-4 h-4"></i></a>
-                <?php endif; ?>
-                <?php if ($estudio['resultado_texto']): ?>
-                  <details class="text-left max-w-xs"><summary class="btn-fantasma btn-sm">Ver resultado</summary><p class="text-sm mt-2 whitespace-pre-line"><?= e($estudio['resultado_texto']) ?></p></details>
-                <?php endif; ?>
+                <a href="<?= e(url('/estudios/' . $estudio['id'] . '/resultado')) ?>" class="btn-secundario btn-sm"><?= icono('file-text') ?>Ver informe</a>
               <?php endif; ?>
             </div></td>
           </tr>

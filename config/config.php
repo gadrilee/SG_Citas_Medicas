@@ -15,7 +15,7 @@ return [
     // Firma las respuestas de la pasarela simulada; en Render se genera sola (render.yaml).
     'clave_app'    => getenv('APP_KEY') ?: hash('sha256', 'vida-salud|' . (getenv('DATABASE_URL') ?: '')),
     // Pasarela con la que se inician los cobros nuevos: simulada | stripe
-    'pasarela'     => getenv('PASARELA') ?: 'simulada',
+    'pasarela'     => strtolower(trim(getenv('PASARELA') ?: 'simulada')),
     'moneda'       => 'BOB',
     'stripe'       => [
         // La clave pública (pk_test_…) la usa Stripe.js para dibujar el formulario en la página.

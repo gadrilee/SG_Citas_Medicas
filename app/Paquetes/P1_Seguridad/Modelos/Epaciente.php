@@ -14,7 +14,7 @@ final class Epaciente extends Modelo
     /** Código correlativo P-0001; el bloqueo evita que dos registros simultáneos tomen el mismo. */
     public function siguienteCodigo(): string
     {
-        $this->bd->exec("SELECT pg_advisory_xact_lock(hashtext('paciente.codigo'))");
+        $this->consultar('SELECT id FROM perfil WHERE id = 1 FOR UPDATE');
         $numero = (int) $this->valor("SELECT COALESCE(max(substring(codigo FROM 3)::int), 0) + 1 FROM paciente WHERE codigo ~ '^P-[0-9]+$'");
         return sprintf('P-%04d', $numero);
     }
@@ -75,6 +75,19 @@ final class Epaciente extends Modelo
     public function cambiarEstado(int $id, bool $activo): void
     {
         $this->ejecutar('UPDATE paciente SET activo = ? WHERE id = ?', [$activo ? 'true' : 'false', $id]);
+    }
+
+    /** CU15 · Pacientes registrados en un período, con su cantidad de citas. */
+    public function registradosEntre(string $desde, string $hasta): array
+    {
+        return $this->consultar(
+            "SELECT p.id, p.codigo, p.activo, p.fecha_registro, dp.ci, dp.nombres || ' ' || dp.apellidos AS nombre, dp.telefono,
+                    (SELECT count(*) FROM cita_medica c WHERE c.paciente_id = p.id) AS citas
+               FROM paciente p JOIN datos_personales dp ON dp.id = p.id
+              WHERE p.fecha_registro >= CAST(:desde AS date) AND p.fecha_registro < CAST(:hasta AS date) + 1
+              ORDER BY p.fecha_registro",
+            ['desde' => $desde, 'hasta' => $hasta]
+        );
     }
 
     public function contarActivos(): int

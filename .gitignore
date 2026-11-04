@@ -7,6 +7,10 @@ herramientas/
 # Estilos compilados (se generan con scripts/css.sh o al construir la imagen)
 publico/css/app.css
 
+# Informes PDF de resultados subidos en CU19 (datos de pacientes)
+almacen/resultados/*
+!almacen/resultados/.gitkeep
+
 # Material de trabajo solo para el equipo (exportación de V0, referencias de otros proyectos)
 privado/
 

@@ -15,16 +15,23 @@ use VidaSalud\Nucleo\Excepciones\ExcepcionNegocio;
 use VidaSalud\Nucleo\Excepciones\ExcepcionNoEncontrado;
 use VidaSalud\Nucleo\Excepciones\ExcepcionValidacion;
 use VidaSalud\Nucleo\Respuesta;
+use VidaSalud\Nucleo\Sesion;
+use VidaSalud\Nucleo\Validador;
 use VidaSalud\Paquetes\P1_Seguridad\Modelos\Emedico;
 use VidaSalud\Paquetes\P1_Seguridad\Modelos\Epaciente;
 use VidaSalud\Paquetes\P2_Agenda\Modelos\Ebloqueo_agenda;
 use VidaSalud\Paquetes\P2_Agenda\Modelos\Ecita_medica;
 use VidaSalud\Paquetes\P2_Agenda\Modelos\Eespecialidad;
+use VidaSalud\Paquetes\P2_Agenda\Modelos\Eestado_cita;
 use VidaSalud\Paquetes\P2_Agenda\Modelos\Ehistorial_cita;
 use VidaSalud\Paquetes\P2_Agenda\Modelos\Ehorario_atencion;
 use VidaSalud\Paquetes\P2_Agenda\Vistas\Vcita;
+use VidaSalud\Paquetes\P4_Atencion\Modelos\Epago;
 
-/** CU09 · Reservar cita médica y CU10 · Reprogramar cita médica (ambos «include» CU08). */
+/**
+ * CU09 · Reservar cita médica, CU10 · Reprogramar cita médica (ambos «include» CU08)
+ * y CU11 · Cancelar cita médica (P3, comparte la clase porque opera sobre la misma cita).
+ */
 final class Ccita extends Controlador
 {
     private const NO_DISPONIBLE = 'El horario seleccionado ya no está disponible. Elige otro cupo.';
@@ -114,7 +121,66 @@ final class Ccita extends Controlador
     public function comprobante(string $id): Respuesta
     {
         $cita = $this->citaAccesible($id);
-        return (new Vcita())->mostrarComprobante($cita, (new Ehistorial_cita())->deCita((int) $cita['id']));
+        return (new Vcita())->mostrarComprobante(
+            $cita,
+            (new Ehistorial_cita())->deCita((int) $cita['id']),
+            (new Epago())->tieneAprobado((int) $cita['id'])
+        );
+    }
+
+    // ---------------------------------------------------------------- CU11
+
+    /** Paso 1: recepción busca la cita por código, paciente o fecha (el paciente usa «Mis citas», CU14). */
+    public function mostrarLista(): Respuesta
+    {
+        // E4: el paciente tiene citas.cancelar solo para las suyas; su búsqueda es «Mis citas».
+        if ($this->usuario()['perfil'] === 'paciente') {
+            return $this->redirigir('/mis-citas');
+        }
+        $filtros = $this->solicitud->solo(['buscar', 'fecha', 'medico_id', 'estado_cita_id']);
+        $errores = Validador::validar($filtros, ['fecha' => 'opcional|fecha', 'medico_id' => 'opcional|entero', 'estado_cita_id' => 'opcional|entero']);
+        $citas = new Ecita_medica();
+        $resultado = $errores
+            ? ['filas' => [], 'total' => 0, 'pagina' => 1, 'paginas' => 1, 'desde' => 0, 'hasta' => 0]
+            : $citas->buscar($filtros, (int) $this->solicitud->consulta('pagina', 1));
+
+        return (new Vcita())->mostrarLista(
+            $resultado,
+            $filtros,
+            (new Emedico())->activosConEspecialidades(),
+            (new Eestado_cita())->todos(),
+            (new Epago())->citasConPagoAprobado(array_column($resultado['filas'], 'id')),
+            $errores
+        );
+    }
+
+    /** Pasos 3–8: cambia a Cancelada con motivo; el horario queda libre porque la exclusión ignora canceladas. */
+    public function cancelar(string $id): Respuesta
+    {
+        $cita = $this->citaAccesible($id);
+        $motivo = trim((string) $this->solicitud->entrada('motivo', ''));
+        // E3: el modal se cierra al volver, por eso el error se explica en el mensaje y no solo en el campo.
+        if (mb_strlen($motivo) < 5 || mb_strlen($motivo) > 500) {
+            throw new ExcepcionNegocio('Indica el motivo de la cancelación (entre 5 y 500 caracteres).');
+        }
+        $datos = ['motivo' => $motivo];
+        $usuarioId = (int) $this->usuario()['id'];
+
+        BaseDatos::transaccion(function () use ($cita, $datos, $usuarioId): void {
+            $citas = new Ecita_medica();
+            $actual = $citas->paraActualizar((int) $cita['id']);
+            self::exigirCancelable($actual);
+            $citas->cambiarEstado((int) $actual['id'], Ecita_medica::CANCELADA);
+            (new Ehistorial_cita())->registrarCambioEstado($actual, $usuarioId, Ecita_medica::CANCELADA, trim($datos['motivo']));
+            Bitacora::registrar('cancelar', 'cita_medica', (int) $actual['id']);
+        });
+
+        Sesion::flash('exito', 'Cita ' . $cita['codigo'] . ' cancelada. El horario del ' . fecha_corta($cita['inicio']) . ' a las ' . hora_corta($cita['inicio']) . ' quedó libre.');
+        // A1: con un pago aprobado se avisa que corresponde la devolución total (CU20).
+        if ((new Epago())->tieneAprobado((int) $cita['id'])) {
+            Sesion::flash('aviso', 'La cita tenía un pago aprobado: corresponde solicitar la devolución total en caja (CU20).');
+        }
+        return $this->volver();
     }
 
     // ---------------------------------------------------------------- CU10
@@ -194,6 +260,21 @@ final class Ccita extends Controlador
         }
         if (new DateTimeImmutable($cita['inicio']) <= new DateTimeImmutable('now')) {
             throw new ExcepcionNegocio('La cita ya comenzó o pasó; no se puede reprogramar.');
+        }
+    }
+
+    /** E1–E2 de CU11: solo citas programadas o confirmadas que aún no comenzaron. */
+    private static function exigirCancelable(?array $cita): void
+    {
+        $estado = (int) ($cita['estado_cita_id'] ?? 0);
+        if ($estado === Ecita_medica::ATENDIDA) {
+            throw new ExcepcionNegocio('La cita ya fue atendida; no puede cancelarse como si no hubiera ocurrido.');
+        }
+        if (!Ecita_medica::transicionPermitida($estado, Ecita_medica::CANCELADA)) {
+            throw new ExcepcionNegocio('La cita ya está ' . ($estado === Ecita_medica::CANCELADA ? 'cancelada' : 'registrada como inasistencia') . '.');
+        }
+        if (new DateTimeImmutable($cita['inicio']) <= new DateTimeImmutable('now')) {
+            throw new ExcepcionNegocio('La cita ya comenzó o pasó; no se puede cancelar.');
         }
     }
 

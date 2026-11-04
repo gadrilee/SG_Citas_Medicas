@@ -29,6 +29,16 @@ final class Respuesta
         return new self('', $codigo, ['Location' => url($ruta)]);
     }
 
+    /** Envía un archivo (informe PDF) para verlo en el navegador. */
+    public static function archivo(string $ruta, string $tipo, string $nombre): self
+    {
+        return new self((string) file_get_contents($ruta), 200, [
+            'Content-Type'        => $tipo,
+            'Content-Disposition' => 'inline; filename="' . str_replace('"', '', $nombre) . '"',
+            'Cache-Control'       => 'private, no-store',
+        ]);
+    }
+
     public function codigo(): int
     {
         return $this->codigo;

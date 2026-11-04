@@ -19,6 +19,12 @@ final class Ebloqueo_agenda extends Modelo
         );
     }
 
+    /** CU13 · Bloqueo de un día concreto (con su motivo) o null. */
+    public function deFecha(int $medicoId, string $fecha): ?array
+    {
+        return $this->primero('SELECT id, fecha, motivo FROM bloqueo_agenda WHERE medico_id = ? AND fecha = CAST(? AS date)', [$medicoId, $fecha]);
+    }
+
     public function existe(int $medicoId, string $fecha): bool
     {
         return (bool) $this->valor('SELECT 1 FROM bloqueo_agenda WHERE medico_id = ? AND fecha = CAST(? AS date)', [$medicoId, $fecha]);

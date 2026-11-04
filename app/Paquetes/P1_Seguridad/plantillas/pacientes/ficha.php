@@ -28,6 +28,9 @@ $nombre = $paciente['nombres'] . ' ' . $paciente['apellidos'];
     </div>
   </div>
   <div class="flex flex-wrap gap-2">
+    <?php if (puede('historia.consultar')): ?>
+      <a href="<?= e(url('/pacientes/' . $paciente['id'] . '/historia')) ?>" class="btn-secundario"><?= icono('file-heart') ?>Historia clínica</a>
+    <?php endif; ?>
     <a href="<?= e(url('/pacientes/' . $paciente['id'] . '/editar')) ?>" class="btn-secundario"><?= icono('pencil') ?>Editar</a>
     <?php if ($paciente['activo']): ?>
       <a href="<?= e(url('/citas/nueva?paciente_id=' . $paciente['id'])) ?>" class="btn-primario"><?= icono('calendar-plus') ?>Nueva cita</a>

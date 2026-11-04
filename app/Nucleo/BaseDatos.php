@@ -20,7 +20,7 @@ final class BaseDatos
             self::$conexion = new PDO($dsn, $usuario, $clave, [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES   => false,
+                PDO::ATTR_EMULATE_PREPARES   => true,
             ]);
             // Las reglas del día y la agenda se interpretan en la hora de Bolivia.
             self::$conexion->exec("SET TIME ZONE 'America/La_Paz'");
